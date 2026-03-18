@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC日本語単語カード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --card-bg: #faf8f5;
+    --text-primary: #2c2c2c;
+    --text-secondary: #7a7570;
+    --text-kana: #5a5450;
+    --accent: #8b7355;
+    --accent-light: #c4aa88;
+    --border: #ddd8d0;
+    --btn-bg: #f0ebe3;
+    --btn-hover: #e5ddd0;
+    --shadow: rgba(139,115,85,0.12);
+    --panel-bg: rgba(250,248,245,0.97);
+    --review-color: #c0704a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Noto Serif SC','Noto Serif JP',serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--text-primary);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(196,170,136,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,115,85,0.06) 0%, transparent 60%);
+  }
+
+  /* ── Header ── */
+  header {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:18px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    background:rgba(245,240,235,0.92); backdrop-filter:blur(10px);
+  }
+  .logo-wrap { display:flex; align-items:baseline; gap:10px; }
+  .logo { font-size:13px; font-weight:300; letter-spacing:.4em; color:var(--accent); }
+  .logo-jp { font-size:11px; font-family:'Noto Serif JP',serif; color:var(--text-secondary); letter-spacing:.2em; }
+  .header-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .hbtn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:6px 14px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+    white-space:nowrap;
+  }
+  .hbtn:hover { border-color:var(--accent-light); color:var(--accent); background:var(--btn-bg); }
+  .hbtn.primary { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
+  .hbtn.primary:hover { background:#7a6248; }
+  .hbtn.review-btn { border-color:rgba(192,112,74,.4); color:var(--review-color); }
+  .hbtn.review-btn:hover { background:rgba(192,112,74,.08); border-color:var(--review-color); }
+  .review-badge {
+    display:inline-block; background:var(--review-color); color:#fff;
+    font-size:9px; border-radius:8px; padding:1px 6px; margin-left:4px;
+    font-family:sans-serif; font-weight:600; letter-spacing:0; vertical-align:middle;
+  }
+
+  /* ── Main ── */
+  .main {
+    display:flex; flex-direction:column; align-items:center;
+    gap:36px; padding:110px 24px 80px;
+    width:100%; max-width:520px;
+  }
+
+  /* Mode bar */
+  .mode-bar {
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+  }
+  .mode-label {
+    font-size:10px; letter-spacing:.35em; color:var(--accent-light); font-weight:300;
+    text-transform:uppercase;
+  }
+  .shuffle-btn {
+    background:none; border:none; font-size:11px; letter-spacing:.2em;
+    color:var(--text-secondary); cursor:pointer; padding:4px 0;
+    font-family:'Noto Serif SC',serif; transition:color .2s;
+  }
+  .shuffle-btn:hover { color:var(--accent); }
+
+  /* Progress */
+  .progress-wrap { display:flex; flex-direction:column; gap:10px; width:100%; }
+  .progress-top { display:flex; justify-content:space-between; width:100%; }
+  .progress-text { font-size:11px; letter-spacing:.3em; color:var(--text-secondary); font-weight:300; }
+  .group-text { font-size:11px; letter-spacing:.2em; color:var(--accent-light); font-weight:300; }
+  .progress-bar { width:100%; height:1px; background:var(--border); position:relative; }
+  .progress-fill { position:absolute; top:0; left:0; height:100%; background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
+
+  /* Card */
+  .scene { width:100%; max-width:400px; height:240px; perspective:1200px; cursor:pointer; position:relative; }
+  .card {
+    width:100%; height:100%; position:relative;
+    transform-style:preserve-3d;
+    transition:transform .65s cubic-bezier(.4,0,.2,1);
+  }
+  .card.flipped { transform:rotateY(180deg); }
+  .card-face {
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:2px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    box-shadow:0 2px 8px var(--shadow), 0 12px 40px rgba(139,115,85,0.07), inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  .card-back { transform:rotateY(180deg); }
+  .word-type { font-size:10px; letter-spacing:.4em; color:var(--accent-light); font-weight:300; }
+  .kanji { font-family:'Noto Serif JP',serif; font-size:62px; font-weight:300; color:var(--text-primary); line-height:1; letter-spacing:.05em; }
+  .hint { font-size:10px; letter-spacing:.3em; color:var(--accent-light); font-weight:300; margin-top:6px; }
+  .kana { font-family:'Noto Serif JP',serif; font-size:22px; font-weight:300; color:var(--text-kana); letter-spacing:.15em; }
+  .romaji { font-size:11px; letter-spacing:.25em; color:var(--accent-light); font-weight:300; font-family:Georgia,serif; font-style:italic; }
+  .divider { width:32px; height:1px; background:var(--border); }
+  .meaning { font-size:22px; font-weight:300; color:var(--text-primary); letter-spacing:.1em; }
+  .example { font-size:11px; color:var(--text-secondary); letter-spacing:.08em; font-weight:300; max-width:280px; text-align:center; line-height:1.7; font-family:'Noto Serif JP',serif; }
+
+  /* Save (bookmark) button on card */
+  .save-btn {
+    position:absolute; top:12px; right:12px; z-index:10;
+    background:none; border:none; cursor:pointer;
+    font-size:18px; line-height:1; padding:4px;
+    opacity:.35; transition:opacity .2s, transform .2s;
+    color:var(--review-color);
+  }
+  .save-btn:hover { opacity:.8; transform:scale(1.15); }
+  .save-btn.saved { opacity:1; }
+
+  /* Empty state */
+  .empty-state {
+    width:100%; max-width:400px; height:240px;
+    border:1px dashed var(--border); border-radius:2px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  }
+  .empty-icon { font-size:32px; opacity:.25; }
+  .empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+
+  /* Dots */
+  .dots { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; max-width:320px; }
+  .dot { width:4px; height:4px; border-radius:50%; background:var(--border); transition:background .25s,transform .25s; cursor:pointer; }
+  .dot.active { background:var(--accent); transform:scale(1.4); }
+  .dot.review-dot { background:rgba(192,112,74,.4); }
+  .dot.review-dot.active { background:var(--review-color); }
+
+  /* Controls */
+  .controls { display:flex; align-items:center; gap:16px; }
+  .btn {
+    background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:11px 26px; font-family:'Noto Serif SC',serif; font-size:12px;
+    font-weight:300; letter-spacing:.3em; color:var(--text-primary);
+    cursor:pointer; transition:all .2s;
+  }
+  .btn:hover { background:var(--btn-hover); border-color:var(--accent-light); color:var(--accent); }
+  .btn:active { transform:scale(.98); }
+  .btn-dot { width:4px; height:4px; border-radius:50%; background:var(--accent-light); }
+
+  /* Next group banner */
+  .next-group-wrap {
+    display:none; flex-direction:column; align-items:center; gap:14px; width:100%;
+  }
+  .next-group-wrap.visible { display:flex; }
+  .group-done-text { font-size:12px; letter-spacing:.25em; color:var(--text-secondary); font-weight:300; }
+  .next-group-btn {
+    background:var(--accent); border:none; border-radius:1px;
+    padding:12px 36px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.4em; color:#faf8f5; cursor:pointer; transition:background .2s;
+  }
+  .next-group-btn:hover { background:#7a6248; }
+
+  /* ── Overlay ── */
+  .overlay {
+    position:fixed; inset:0; z-index:200;
+    background:rgba(44,40,36,.4); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .overlay.open { opacity:1; pointer-events:all; }
+
+  /* Panel */
+  .panel {
+    background:var(--panel-bg); border:1px solid var(--border); border-radius:2px;
+    width:90%; max-width:480px; max-height:85vh; overflow-y:auto;
+    transform:translateY(16px); transition:transform .3s;
+    box-shadow:0 24px 80px rgba(44,40,36,.18);
+  }
+  .overlay.open .panel { transform:translateY(0); }
+  .panel-header {
+    padding:22px 28px 16px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; background:var(--panel-bg); z-index:1;
+  }
+  .panel-title { font-size:13px; letter-spacing:.3em; color:var(--accent); font-weight:300; }
+  .panel-subtitle { font-size:10px; letter-spacing:.2em; color:var(--text-secondary); margin-top:3px; }
+  .panel-close {
+    background:none; border:none; font-size:18px; color:var(--text-secondary);
+    cursor:pointer; line-height:1; padding:0 4px; flex-shrink:0;
+  }
+  .panel-close:hover { color:var(--text-primary); }
+  .panel-body { padding:24px 28px 28px; display:flex; flex-direction:column; gap:20px; }
+  .panel-label { font-size:11px; letter-spacing:.25em; color:var(--text-secondary); font-weight:300; }
+  .panel-input {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:1px;
+    padding:10px 14px; font-family:'Noto Serif SC',serif; font-size:13px;
+    color:var(--text-primary); outline:none; transition:border-color .2s;
+  }
+  .panel-input:focus { border-color:var(--accent-light); }
+  .panel-input::placeholder { color:var(--text-secondary); font-size:12px; }
+
+  /* AI Panel */
+  .ai-options { display:flex; flex-direction:column; gap:10px; }
+  .option-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .opt-btn {
+    background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:7px 14px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+  }
+  .opt-btn:hover,.opt-btn.selected { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
+
+  .generate-btn {
+    width:100%; background:var(--accent); border:none; border-radius:1px;
+    padding:13px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.35em; color:#faf8f5; cursor:pointer; transition:background .2s;
+    position:relative; overflow:hidden;
+  }
+  .generate-btn:hover { background:#7a6248; }
+  .generate-btn:disabled { background:var(--accent-light); cursor:not-allowed; }
+  .loading-bar {
+    position:absolute; bottom:0; left:0; height:2px; background:rgba(255,255,255,.5);
+    animation:loadpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes loadpulse { 0%{width:0;left:0} 50%{width:60%;left:20%} 100%{width:0;left:100%} }
+
+  /* Preview list */
+  .preview-list { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:1px; overflow:hidden; }
+  .preview-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid var(--border); background:var(--card-bg); font-size:12px;
+  }
+  .preview-item:last-child { border-bottom:none; }
+  .preview-left { display:flex; align-items:baseline; gap:10px; }
+  .preview-kanji { font-family:'Noto Serif JP',serif; font-size:16px; font-weight:300; }
+  .preview-kana { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; }
+  .preview-meaning { font-size:12px; color:var(--text-secondary); }
+  .preview-dup { font-size:10px; color:var(--accent-light); letter-spacing:.1em; }
+  .add-all-btn {
+    width:100%; background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:11px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.3em; color:var(--text-primary); cursor:pointer; transition:all .2s;
+  }
+  .add-all-btn:hover { background:var(--btn-hover); border-color:var(--accent-light); }
+
+  /* Lookup / Manual */
+  .lookup-btn {
+    background:var(--accent); border:none; border-radius:1px;
+    padding:10px 18px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.3em; color:#faf8f5; cursor:pointer; transition:background .2s; white-space:nowrap; flex-shrink:0;
+  }
+  .lookup-btn:hover { background:#7a6248; }
+  .lookup-btn:disabled { background:var(--accent-light); cursor:not-allowed; }
+  .result-card {
+    background:var(--bg); border:1px solid var(--border); border-radius:2px; padding:18px 20px;
+    display:flex; flex-direction:column; gap:7px;
+  }
+  .result-row { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .result-kanji { font-family:'Noto Serif JP',serif; font-size:26px; font-weight:300; }
+  .result-kana { font-family:'Noto Serif JP',serif; font-size:15px; font-weight:300; color:var(--text-kana); }
+  .result-type { font-size:10px; letter-spacing:.3em; color:var(--accent-light); }
+  .result-romaji { font-size:11px; color:var(--accent-light); font-family:Georgia,serif; font-style:italic; letter-spacing:.15em; }
+  .result-meaning { font-size:18px; font-weight:300; letter-spacing:.05em; }
+  .result-example { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; line-height:1.7; }
+  .edit-toggle-btn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:7px 18px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+  }
+  .edit-toggle-btn:hover { border-color:var(--accent-light); color:var(--accent); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field { display:flex; flex-direction:column; gap:6px; }
+  .form-field.full { grid-column:1/-1; }
+  .add-word-btn {
+    width:100%; background:var(--accent); border:none; border-radius:1px;
+    padding:13px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.35em; color:#faf8f5; cursor:pointer; transition:background .2s;
+  }
+  .add-word-btn:hover { background:#7a6248; }
+
+  /* ── Review Panel ── */
+  .review-empty {
+    text-align:center; padding:40px 0;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .review-empty-icon { font-size:28px; opacity:.25; }
+  .review-empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+
+  .review-list { display:flex; flex-direction:column; gap:0; }
+  .review-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 0; border-bottom:1px solid var(--border);
+    animation:fadeIn .25s ease;
+  }
+  .review-item:last-child { border-bottom:none; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+  .review-item-left { display:flex; flex-direction:column; gap:4px; }
+  .review-item-kanji { font-family:'Noto Serif JP',serif; font-size:20px; font-weight:300; }
+  .review-item-sub { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; letter-spacing:.1em; }
+  .review-item-meaning { font-size:12px; color:var(--text-primary); letter-spacing:.05em; margin-top:2px; }
+  .remove-review-btn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:5px 12px; font-family:'Noto Serif SC',serif; font-size:10px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s; flex-shrink:0;
+  }
+  .remove-review-btn:hover { border-color:var(--review-color); color:var(--review-color); }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--text-primary); color:#faf8f5; padding:9px 22px;
+    font-size:11px; letter-spacing:.2em; border-radius:1px;
+    opacity:0; transition:all .3s; z-index:400; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ── Review Modal ── */
+  .review-modal {
+    background:var(--panel-bg); border:1px solid var(--border); border-radius:2px;
+    width:90%; max-width:520px; max-height:90vh; overflow-y:auto;
+    transform:translateY(16px); transition:transform .3s;
+    box-shadow:0 24px 80px rgba(44,40,36,.18);
+    padding:28px 32px 36px;
+    display:flex; flex-direction:column; gap:28px;
+  }
+  .overlay.open .review-modal { transform:translateY(0); }
+  .review-modal-header {
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--border); padding-bottom:16px;
+  }
+  .panel-subtitle { font-size:10px; letter-spacing:.2em; color:var(--text-secondary); margin-top:3px; }
+  .review-empty {
+    text-align:center; padding:48px 0;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .review-empty-icon { font-size:28px; opacity:.25; }
+  .review-empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+  .review-modal::-webkit-scrollbar { width:3px; }
+  .review-modal::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.4;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  .main,header,.overlay { position:relative; z-index:1; }
+  .panel::-webkit-scrollbar { width:3px; }
+  .panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo">Tango</span>
+    <span class="logo-jp">単語カード</span>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn review-btn" onclick="openPanel('review')">
+      复习列表<span class="review-badge" id="reviewBadge" style="display:none">0</span>
+    </button>
+    <button class="hbtn" onclick="openPanel('manual')">＋ 添加单词</button>
+    <button class="hbtn primary" onclick="openPanel('ai')">AI 生成词库</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- Mode bar -->
+  <div class="mode-bar">
+    <span class="mode-label" id="modeLabel">全部词汇</span>
+    <button class="shuffle-btn" id="shuffleBtn" onclick="shuffleGroup()" style="display:none">↺ 换一批</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="progress-text" id="progressText">— / —</span>
+      <span class="group-text" id="groupText"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Card -->
+  <div class="scene" id="scene" onclick="flipCard()">
+    <button class="save-btn" id="saveBtn" onclick="event.stopPropagation();toggleReview()" title="加入复习列表">♡</button>
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <span class="word-type" id="wordType">—</span>
+        <span class="kanji" id="kanjiDisplay">—</span>
+        <span class="hint">点击翻面 · タップ</span>
+      </div>
+      <div class="card-face card-back">
+        <span class="kana" id="kanaDisplay">—</span>
+        <span class="romaji" id="romajiDisplay">—</span>
+        <div class="divider"></div>
+        <span class="meaning" id="meaningDisplay">—</span>
+        <span class="example" id="exampleDisplay"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dots -->
+  <div class="dots" id="dots"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" onclick="prevCard()">上一个</button>
+    <div class="btn-dot"></div>
+    <button class="btn" onclick="nextCard()">下一个</button>
+  </div>
+
+  <!-- Next group -->
+  <div class="next-group-wrap" id="nextGroupWrap">
+    <span class="group-done-text">这一批学完了 ✓</span>
+    <button class="next-group-btn" onclick="nextGroup()">换 一 批</button>
+  </div>
+</div>
+
+<!-- ── AI Panel ── -->
+<div class="overlay" id="aiOverlay" onclick="closeOnBg(event,'aiOverlay')">
+  <div class="panel">
+    <div class="panel-header">
+      <div><div class="panel-title">AI 生成词库</div></div>
+      <button class="panel-close" onclick="closePanel('aiOverlay')">×</button>
+    </div>
+    <div class="panel-body">
+      <div>
+        <div class="panel-label" style="margin-bottom:10px">主题</div>
+        <div class="ai-options">
+          <div class="option-row">
+            <button class="opt-btn selected" onclick="selectOpt(this)">JLPT N5</button>
+            <button class="opt-btn" onclick="selectOpt(this)">JLPT N4</button>
+            <button class="opt-btn" onclick="selectOpt(this)">日常生活</button>
+            <button class="opt-btn" onclick="selectOpt(this)">旅行</button>
+            <button class="opt-btn" onclick="selectOpt(this)">饮食</button>
+            <button class="opt-btn" onclick="selectOpt(this)">商务</button>
+          </div>
+          <input class="panel-input" id="customTheme" placeholder="或输入自定义主题，如：动物、天气…">
+        </div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn" onclick="generateWords()">
+        <span id="generateBtnText">生 成 词 汇</span>
+      </button>
+      <div id="previewSection" style="display:none;flex-direction:column;gap:12px;">
+        <div class="panel-label" id="previewLabel">生成结果</div>
+        <div class="preview-list" id="previewList"></div>
+        <button class="add-all-btn" onclick="addAllPreview()">全部加入词库</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Manual Panel ── -->
+<div class="overlay" id="manualOverlay" onclick="closeOnBg(event,'manualOverlay')">
+  <div class="panel">
+    <div class="panel-header">
+      <div><div class="panel-title">添加单词</div></div>
+      <button class="panel-close" onclick="closePanel('manualOverlay')">×</button>
+    </div>
+    <div class="panel-body">
+      <div>
+        <div class="panel-label" style="margin-bottom:8px">输入日语单词</div>
+        <div style="display:flex;gap:8px">
+          <input class="panel-input" id="mKanji" placeholder="输入汉字或假名，如：勉強、たべる…"
+            style="flex:1" onkeydown="if(event.key==='Enter')lookupWord()">
+          <button class="lookup-btn" id="lookupBtn" onclick="lookupWord()">查　询</button>
+        </div>
+        <div id="lookupHint" style="font-size:10px;letter-spacing:.2em;color:var(--accent-light);margin-top:8px;min-height:16px"></div>
+      </div>
+      <div id="lookupResult" style="display:none;flex-direction:column;gap:14px">
+        <div class="result-card">
+          <div class="result-row">
+            <span class="result-kanji" id="rKanji"></span>
+            <span class="result-kana" id="rKana"></span>
+            <span class="result-type" id="rType"></span>
+          </div>
+          <div class="result-romaji" id="rRomaji"></div>
+          <div class="result-meaning" id="rMeaning"></div>
+          <div class="result-example" id="rExample"></div>
+        </div>
+        <div style="text-align:center">
+          <button class="edit-toggle-btn" onclick="toggleEdit()">手动修改字段</button>
+        </div>
+        <div id="editFields" style="display:none;flex-direction:column;gap:12px">
+          <div class="form-grid">
+            <div class="form-field"><label class="panel-label">假名</label><input class="panel-input" id="mKana"></div>
+            <div class="form-field"><label class="panel-label">罗马字</label><input class="panel-input" id="mRomaji"></div>
+            <div class="form-field"><label class="panel-label">词性</label><input class="panel-input" id="mType"></div>
+            <div class="form-field"><label class="panel-label">中文释义</label><input class="panel-input" id="mMeaning"></div>
+            <div class="form-field full"><label class="panel-label">例句</label><input class="panel-input" id="mExample"></div>
+          </div>
+          <button class="edit-toggle-btn" onclick="syncEditToCard()">应用修改</button>
+        </div>
+        <button class="add-word-btn" onclick="addManualWord()">添 加 到 词 库</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Review Overlay (flashcard mode) ── -->
+<div class="overlay" id="reviewOverlay" onclick="closeOnBg(event,'reviewOverlay')">
+  <div class="review-modal">
+    <div class="review-modal-header">
+      <div>
+        <div class="panel-title">复习列表</div>
+        <div class="panel-subtitle" id="reviewSubtitle"></div>
+      </div>
+      <button class="panel-close" onclick="closePanel('reviewOverlay')">×</button>
+    </div>
+    <div id="reviewEmpty" style="display:none">
+      <div class="review-empty">
+        <div class="review-empty-icon">♡</div>
+        <div class="review-empty-text">还没有标记任何单词</div>
+        <div class="review-empty-text" style="font-size:10px;opacity:.6;margin-top:4px">点击卡片右上角的 ♡ 来标记</div>
+      </div>
+    </div>
+    <div id="reviewCardWrap" style="display:none; flex-direction:column; align-items:center; gap:28px;">
+      <div class="progress-wrap" style="width:100%;max-width:400px;">
+        <div class="progress-top">
+          <span class="progress-text" id="rProgressText">— / —</span>
+          <span class="group-text">复习模式</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="rProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="scene" id="rScene" onclick="rFlipCard()">
+        <button class="save-btn saved" id="rSaveBtn" onclick="event.stopPropagation();rRemoveCurrent()" title="记住了，从列表移除">♥</button>
+        <div class="card" id="rCard">
+          <div class="card-face card-front">
+            <span class="word-type" id="rWordType"></span>
+            <span class="kanji" id="rKanjiDisplay"></span>
+            <span class="hint">点击翻面 · タップ</span>
+          </div>
+          <div class="card-face card-back">
+            <span class="kana" id="rKanaDisplay"></span>
+            <span class="romaji" id="rRomajiDisplay"></span>
+            <div class="divider"></div>
+            <span class="meaning" id="rMeaningDisplay"></span>
+            <span class="example" id="rExampleDisplay"></span>
+          </div>
+        </div>
+      </div>
+      <div class="dots" id="rDots"></div>
+      <div class="controls">
+        <button class="btn" onclick="rPrev()">上一个</button>
+        <div class="btn-dot"></div>
+        <button class="btn" onclick="rNext()">下一个</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ──
+const PAGE_SIZE = 10;
+
+let words = [
+  { kanji:'私', kana:'わたし', romaji:'watashi', type:'代词', meaning:'我', example:'私は学生です。', source:'default' },
+  { kanji:'食べる', kana:'たべる', romaji:'taberu', type:'动词', meaning:'吃', example:'毎日ご飯を食べる。', source:'default' },
+  { kanji:'学生', kana:'がくせい', romaji:'gakusei', type:'名词', meaning:'学生', example:'私は学生です。', source:'default' },
+  { kanji:'水', kana:'みず', romaji:'mizu', type:'名词', meaning:'水', example:'水を飲みます。', source:'default' },
+  { kanji:'見る', kana:'みる', romaji:'miru', type:'动词', meaning:'看', example:'映画を見る。', source:'default' },
+  { kanji:'美しい', kana:'うつくしい', romaji:'utsukushii', type:'形容词', meaning:'美丽的', example:'花が美しい。', source:'default' },
+  { kanji:'時間', kana:'じかん', romaji:'jikan', type:'名词', meaning:'时间', example:'時間がありますか。', source:'default' },
+  { kanji:'友達', kana:'ともだち', romaji:'tomodachi', type:'名词', meaning:'朋友', example:'友達と話す。', source:'default' },
+  { kanji:'行く', kana:'いく', romaji:'iku', type:'动词', meaning:'去', example:'学校へ行く。', source:'default' },
+  { kanji:'静か', kana:'しずか', romaji:'shizuka', type:'形容词', meaning:'安静的', example:'図書館は静かです。', source:'default' },
+];
+
+let reviewSet = new Set(); // kanji keys
+let currentGroup = []; // indices into words[] for current page
+let groupOffset = 0;   // which page we're on (0-based)
+let current = 0;       // index within currentGroup
+let isFlipped = false;
+let previewWords = [];
+let lookedUpWord = null;
+
+// ── Group management ──
+function buildGroup(offset) {
+  groupOffset = offset;
+  const start = offset * PAGE_SIZE;
+  currentGroup = [];
+  for (let i = start; i < Math.min(start + PAGE_SIZE, words.length); i++) {
+    currentGroup.push(i);
+  }
+}
+
+function totalGroups() { return Math.ceil(words.length / PAGE_SIZE); }
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function shuffleGroup() {
+  if (words.length === 0) return;
+  // 100+ words: true random shuffle of entire deck
+  if (words.length >= 100) {
+    const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
+    groupOffset = -1; // mark as shuffled mode
+    current = 0; isFlipped = false;
+    document.getElementById('modeLabel').textContent = '随机模式 · 共 ' + words.length + ' 词';
+    updateCard(); hideNextGroup();
+    return;
+  }
+  const total = totalGroups();
+  if (total <= 1) { showToast('词库不足，请先添加更多单词'); return; }
+  let next = groupOffset;
+  while (next === groupOffset) next = Math.floor(Math.random() * total);
+  buildGroup(next);
+  current = 0; isFlipped = false;
+  updateCard(); hideNextGroup();
+}
+
+function nextGroup() {
+  if (words.length >= 100) {
+    // In large-deck mode, get a fresh random batch
+    const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
+    groupOffset = -1;
+    current = 0; isFlipped = false;
+    updateCard(); hideNextGroup();
+    return;
+  }
+  const total = totalGroups();
+  const next = (groupOffset + 1) % total;
+  buildGroup(next);
+  current = 0; isFlipped = false;
+  updateCard(); hideNextGroup();
+}
+
+function hideNextGroup() {
+  document.getElementById('nextGroupWrap').classList.remove('visible');
+}
+
+// ── Card rendering ──
+function updateCard() {
+  const total = words.length;
+  if (total === 0) {
+    document.getElementById('scene').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">帳</div>
+        <div class="empty-text">词库为空，请添加单词</div>
+      </div>`;
+    document.getElementById('progressText').textContent = '— / —';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('groupText').textContent = '';
+    document.getElementById('saveBtn') && (document.getElementById('saveBtn').style.display = 'none');
+    buildDots();
+    return;
+  }
+
+  // Ensure scene has card structure
+  if (!document.getElementById('card')) restoreScene();
+
+  const wi = currentGroup[current];
+  const w = words[wi];
+
+  document.getElementById('kanjiDisplay').textContent = w.kanji;
+  document.getElementById('kanaDisplay').textContent = w.kana;
+  document.getElementById('romajiDisplay').textContent = w.romaji;
+  document.getElementById('wordType').textContent = w.type;
+  document.getElementById('meaningDisplay').textContent = w.meaning;
+  document.getElementById('exampleDisplay').textContent = w.example || '';
+
+  const inGroup = current + 1;
+  const groupSize = currentGroup.length;
+  document.getElementById('progressText').textContent =
+    String(inGroup).padStart(2,'0') + ' / ' + String(groupSize).padStart(2,'0');
+  document.getElementById('progressFill').style.width = (inGroup / groupSize * 100) + '%';
+
+  const tg = totalGroups();
+  document.getElementById('groupText').textContent =
+    tg > 1 ? `第 ${groupOffset+1} 批 / 共 ${tg} 批` : '';
+  document.getElementById('shuffleBtn').style.display = tg > 1 ? 'inline' : 'none';
+
+  updateModeLabel();
+  updateSaveBtn();
+  buildDots();
+
+  // Show "next group" banner when reaching last card of group
+  if (inGroup === groupSize && groupSize > 0) {
+    document.getElementById('nextGroupWrap').classList.add('visible');
+  } else {
+    hideNextGroup();
+  }
+}
+
+function restoreScene() {
+  document.getElementById('scene').innerHTML = `
+    <button class="save-btn" id="saveBtn" onclick="event.stopPropagation();toggleReview()" title="加入复习列表">♡</button>
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <span class="word-type" id="wordType"></span>
+        <span class="kanji" id="kanjiDisplay"></span>
+        <span class="hint">点击翻面 · タップ</span>
+      </div>
+      <div class="card-face card-back">
+        <span class="kana" id="kanaDisplay"></span>
+        <span class="romaji" id="romajiDisplay"></span>
+        <div class="divider"></div>
+        <span class="meaning" id="meaningDisplay"></span>
+        <span class="example" id="exampleDisplay"></span>
+      </div>
+    </div>`;
+}
+
+function updateSaveBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  const wi = currentGroup[current];
+  const w = words[wi];
+  if (!w) return;
+  const saved = reviewSet.has(w.kanji);
+  btn.textContent = saved ? '♥' : '♡';
+  btn.classList.toggle('saved', saved);
+  btn.title = saved ? '已加入复习列表（点击取消）' : '加入复习列表';
+}
+
+function updateModeLabel() {
+  if (words.length >= 100) {
+    document.getElementById('modeLabel').textContent = '随机模式 · 共 ' + words.length + ' 词';
+  } else {
+    document.getElementById('modeLabel').textContent =
+      totalGroups() > 1 ? '词库 · 共 ' + words.length + ' 词' : '全部词汇';
+  }
+}
+
+function buildDots() {
+  const c = document.getElementById('dots');
+  c.innerHTML = '';
+  currentGroup.forEach((wi, i) => {
+    const w = words[wi];
+    const d = document.createElement('div');
+    const isReview = reviewSet.has(w.kanji);
+    d.className = 'dot' + (isReview ? ' review-dot' : '') + (i === current ? ' active' : '');
+    d.title = w.kanji;
+    d.onclick = () => goTo(i);
+    c.appendChild(d);
+  });
+  updateReviewBadge();
+}
+
+function updateReviewBadge() {
+  const badge = document.getElementById('reviewBadge');
+  const count = reviewSet.size;
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
+  badge.textContent = count;
+}
+
+// ── Navigation ──
+function flipCard() {
+  if (!document.getElementById('card')) return;
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+}
+
+function goTo(i) {
+  isFlipped = false;
+  const card = document.getElementById('card');
+  if (card) card.classList.remove('flipped');
+  current = ((i % currentGroup.length) + currentGroup.length) % currentGroup.length;
+  updateCard();
+}
+function nextCard() { goTo(current + 1); }
+function prevCard() { goTo(current - 1); }
+
+// ── Review (main card) ──
+function toggleReview() {
+  if (currentGroup.length === 0) return;
+  const wi = currentGroup[current];
+  const w = words[wi];
+  if (reviewSet.has(w.kanji)) {
+    reviewSet.delete(w.kanji);
+    showToast('已从复习列表移除');
+  } else {
+    reviewSet.add(w.kanji);
+    showToast('已加入复习列表 ♥');
+  }
+  updateSaveBtn();
+  buildDots();
+}
+
+// ── Review flashcard state ──
+let rList = [];   // array of word objects in review
+let rCurrent = 0;
+let rFlipped = false;
+
+function openReviewPanel() {
+  const empty = document.getElementById('reviewEmpty');
+  const wrap = document.getElementById('reviewCardWrap');
+  const subtitle = document.getElementById('reviewSubtitle');
+
+  rList = words.filter(w => reviewSet.has(w.kanji));
+  if (rList.length === 0) {
+    subtitle.textContent = '标记需要加强的单词';
+    empty.style.display = 'flex';
+    wrap.style.display = 'none';
+    return;
+  }
+  subtitle.textContent = '共 ' + rList.length + ' 个需要加强';
+  empty.style.display = 'none';
+  wrap.style.display = 'flex';
+  rCurrent = 0;
+  rFlipped = false;
+  rUpdateCard();
+}
+
+function rUpdateCard() {
+  if (rList.length === 0) {
+    document.getElementById('reviewSubtitle').textContent = '全部记住了 ✓';
+    document.getElementById('reviewCardWrap').style.display = 'none';
+    document.getElementById('reviewEmpty').style.display = 'flex';
+    document.getElementById('reviewEmpty').innerHTML = `
+      <div class="review-empty">
+        <div class="review-empty-icon">✓</div>
+        <div class="review-empty-text">全部记住了！</div>
+      </div>`;
+    return;
+  }
+  rCurrent = Math.min(rCurrent, rList.length - 1);
+  const w = rList[rCurrent];
+  document.getElementById('rKanjiDisplay').textContent = w.kanji;
+  document.getElementById('rKanaDisplay').textContent = w.kana;
+  document.getElementById('rRomajiDisplay').textContent = w.romaji;
+  document.getElementById('rWordType').textContent = w.type;
+  document.getElementById('rMeaningDisplay').textContent = w.meaning;
+  document.getElementById('rExampleDisplay').textContent = w.example || '';
+  document.getElementById('rProgressText').textContent =
+    String(rCurrent+1).padStart(2,'0') + ' / ' + String(rList.length).padStart(2,'0');
+  document.getElementById('rProgressFill').style.width = ((rCurrent+1)/rList.length*100) + '%';
+  document.getElementById('reviewSubtitle').textContent = '共 ' + rList.length + ' 个需要加强';
+  rBuildDots();
+}
+
+function rBuildDots() {
+  const c = document.getElementById('rDots');
+  c.innerHTML = '';
+  rList.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot review-dot' + (i === rCurrent ? ' active' : '');
+    d.onclick = () => { rCurrent = i; rFlipped = false; document.getElementById('rCard').classList.remove('flipped'); rUpdateCard(); };
+    c.appendChild(d);
+  });
+}
+
+function rFlipCard() {
+  rFlipped = !rFlipped;
+  document.getElementById('rCard').classList.toggle('flipped', rFlipped);
+}
+
+function rNext() {
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  rCurrent = (rCurrent + 1) % rList.length;
+  rUpdateCard();
+}
+
+function rPrev() {
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  rCurrent = (rCurrent - 1 + rList.length) % rList.length;
+  rUpdateCard();
+}
+
+function rRemoveCurrent() {
+  const w = rList[rCurrent];
+  reviewSet.delete(w.kanji);
+  rList.splice(rCurrent, 1);
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  updateSaveBtn();
+  buildDots();
+  showToast('"' + w.kanji + '" 已从复习列表移除');
+  rUpdateCard();
+}
+
+// ── Panels ──
+function openPanel(name) {
+  document.getElementById(name + 'Overlay').classList.add('open');
+  if (name === 'ai') {
+    document.getElementById('previewSection').style.display = 'none';
+    previewWords = [];
+  }
+  if (name === 'manual') resetManualPanel();
+  if (name === 'review') openReviewPanel();
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+function closeOnBg(e, id) { if (e.target === document.getElementById(id)) closePanel(id); }
+
+// ── Option buttons (scoped per row) ──
+function selectOpt(btn) {
+  btn.closest('.option-row, .ai-options').querySelectorAll('.opt-btn').forEach(b => {
+    if (b.closest('.option-row') === btn.closest('.option-row')) b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+}
+
+// ── AI Generate ──
+async function generateWords() {
+  const customTheme = document.getElementById('customTheme').value.trim();
+  const themeBtn = document.querySelector('#aiOverlay .ai-options .opt-btn.selected');
+  const theme = customTheme || (themeBtn ? themeBtn.textContent.trim() : 'JLPT N5');
+  const count = 10;
+
+  const btn = document.getElementById('generateBtn');
+  const btnText = document.getElementById('generateBtnText');
+  btn.disabled = true;
+  btnText.textContent = '生成中…';
+  btn.insertAdjacentHTML('beforeend','<div class="loading-bar" id="loadBar"></div>');
+
+  const existingKanji = words.map(w => w.kanji);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:2000,
+        system:`你是一个日语教学助手。请严格返回 JSON 数组，不要有任何其他文字、markdown 或代码块。
+数组中每个对象包含：kanji、kana（平假名）、romaji、type（词性）、meaning（中文释义）、example（短例句）。`,
+        messages:[{ role:'user', content:`请生成 ${count} 个与 ${theme} 相关的日语单词。以下单词已存在，必须完全避免重复（包括同一个词的不同写法）：${existingKanji.length ? existingKanji.join('、') : '（无）'}。只返回 JSON 数组，不要任何说明。` }]
+      })
+    });
+    const data = await res.json();
+    const clean = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    previewWords = JSON.parse(clean);
+    showPreview(previewWords, existingKanji);
+  } catch(e) {
+    showToast('生成失败，请重试');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = '重新生成';
+    document.getElementById('loadBar')?.remove();
+  }
+}
+
+function showPreview(list, existing) {
+  const sec = document.getElementById('previewSection');
+  const ul = document.getElementById('previewList');
+  sec.style.display = 'flex';
+  ul.innerHTML = '';
+  list.forEach(w => {
+    const dup = existing.includes(w.kanji);
+    ul.insertAdjacentHTML('beforeend', `
+      <div class="preview-item">
+        <div class="preview-left">
+          <span class="preview-kanji">${w.kanji}</span>
+          <span class="preview-kana">${w.kana}</span>
+          <span class="preview-meaning">${w.meaning}</span>
+        </div>
+        ${dup ? '<span class="preview-dup">已有</span>' : ''}
+      </div>`);
+  });
+  document.getElementById('previewLabel').textContent = `生成结果（${list.length} 个）`;
+}
+
+function addAllPreview() {
+  if (!previewWords.length) return;
+  const existing = new Set(words.map(w => w.kanji));
+  let added = 0;
+  previewWords.forEach(w => { if (!existing.has(w.kanji)) { words.push({...w, source:'ai'}); added++; } });
+  buildGroup(groupOffset); // refresh current group in case new words added to same page
+  updateCard();
+  closePanel('aiOverlay');
+  showToast(`已添加 ${added} 个新词汇`);
+}
+
+// ── Manual Lookup ──
+function resetManualPanel() {
+  document.getElementById('mKanji').value = '';
+  document.getElementById('lookupHint').textContent = '';
+  document.getElementById('lookupResult').style.display = 'none';
+  document.getElementById('editFields').style.display = 'none';
+  lookedUpWord = null;
+}
+
+async function lookupWord() {
+  const kanji = document.getElementById('mKanji').value.trim();
+  if (!kanji) { showToast('请输入一个日语单词'); return; }
+  if (words.find(w => w.kanji === kanji)) { showToast(`"${kanji}" 已在词库中`); return; }
+
+  const btn = document.getElementById('lookupBtn');
+  const hint = document.getElementById('lookupHint');
+  btn.disabled = true; btn.textContent = '查询中…';
+  hint.textContent = 'AI 正在查询，请稍候…';
+  document.getElementById('lookupResult').style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:500,
+        system:`你是日语词典助手。用户输入一个日语单词，严格返回 JSON 对象，无其他文字或代码块。
+字段：kanji（原词）、kana（平假名）、romaji、type（词性）、meaning（简洁中文释义，不超过10字）、example（含该词的短例句）。`,
+        messages:[{ role:'user', content:`查询：${kanji}` }]
+      })
+    });
+    const data = await res.json();
+    const clean = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    lookedUpWord = JSON.parse(clean);
+
+    document.getElementById('rKanji').textContent = lookedUpWord.kanji;
+    document.getElementById('rKana').textContent = lookedUpWord.kana;
+    document.getElementById('rType').textContent = lookedUpWord.type;
+    document.getElementById('rRomaji').textContent = lookedUpWord.romaji;
+    document.getElementById('rMeaning').textContent = lookedUpWord.meaning;
+    document.getElementById('rExample').textContent = lookedUpWord.example || '';
+    document.getElementById('mKana').value = lookedUpWord.kana;
+    document.getElementById('mRomaji').value = lookedUpWord.romaji;
+    document.getElementById('mType').value = lookedUpWord.type;
+    document.getElementById('mMeaning').value = lookedUpWord.meaning;
+    document.getElementById('mExample').value = lookedUpWord.example || '';
+
+    document.getElementById('lookupResult').style.display = 'flex';
+    hint.textContent = '';
+  } catch(e) {
+    hint.textContent = '查询失败，请检查网络或重试';
+  } finally {
+    btn.disabled = false; btn.textContent = '重新查询';
+  }
+}
+
+function toggleEdit() {
+  const f = document.getElementById('editFields');
+  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+}
+
+function syncEditToCard() {
+  if (!lookedUpWord) return;
+  lookedUpWord.kana = document.getElementById('mKana').value.trim() || lookedUpWord.kana;
+  lookedUpWord.romaji = document.getElementById('mRomaji').value.trim() || lookedUpWord.romaji;
+  lookedUpWord.type = document.getElementById('mType').value.trim() || lookedUpWord.type;
+  lookedUpWord.meaning = document.getElementById('mMeaning').value.trim() || lookedUpWord.meaning;
+  lookedUpWord.example = document.getElementById('mExample').value.trim();
+  document.getElementById('rKana').textContent = lookedUpWord.kana;
+  document.getElementById('rRomaji').textContent = lookedUpWord.romaji;
+  document.getElementById('rType').textContent = lookedUpWord.type;
+  document.getElementById('rMeaning').textContent = lookedUpWord.meaning;
+  document.getElementById('rExample').textContent = lookedUpWord.example;
+  document.getElementById('editFields').style.display = 'none';
+  showToast('修改已应用');
+}
+
+function addManualWord() {
+  if (!lookedUpWord) { showToast('请先查询单词'); return; }
+  if (words.find(w => w.kanji === lookedUpWord.kanji)) { showToast(`"${lookedUpWord.kanji}" 已在词库中`); return; }
+  const label = lookedUpWord.kanji;
+  words.push({...lookedUpWord, source:'user'});
+  // Go to last group where new word was added
+  buildGroup(totalGroups() - 1);
+  current = currentGroup.indexOf(words.length - 1);
+  if (current < 0) current = 0;
+  isFlipped = false;
+  updateCard();
+  closePanel('manualOverlay');
+  resetManualPanel();
+  showToast(`"${label}" 已添加`);
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.overlay.open')) return;
+  if (e.key === 'ArrowRight') nextCard();
+  else if (e.key === 'ArrowLeft') prevCard();
+  else if (e.key === ' ') { e.preventDefault(); flipCard(); }
+  else if (e.key === 's' || e.key === 'S') toggleReview();
+});
+
+// ── Init ──
+if (words.length >= 100) {
+  const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
+  currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
+  groupOffset = -1;
+} else {
+  buildGroup(0);
+}
+updateCard();
+</script>
+</body>
+</html>
