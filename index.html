@@ -56,6 +56,7 @@
   .hbtn.primary { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
   .hbtn.primary:hover { background:#7a6248; }
   .hbtn.review-btn { border-color:rgba(192,112,74,.4); color:var(--review-color); }
+  .hbtn.level-btn.active { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
   .hbtn.review-btn:hover { background:rgba(192,112,74,.08); border-color:var(--review-color); }
   .review-badge {
     display:inline-block; background:var(--review-color); color:#fff;
@@ -368,7 +369,9 @@
       复习列表<span class="review-badge" id="reviewBadge" style="display:none">0</span>
     </button>
     <button class="hbtn" onclick="openPanel('manual')">＋ 添加单词</button>
-    <button class="hbtn primary" onclick="openPanel('ai')">AI 生成词库</button>
+    <button class="hbtn level-btn active" id="btnAll" onclick="setLevel('all')">全部</button>
+    <button class="hbtn level-btn" id="btnN5" onclick="setLevel('N5')">N5</button>
+    <button class="hbtn level-btn" id="btnN4" onclick="setLevel('N4')">N4</button>
   </div>
 </header>
 
@@ -424,40 +427,6 @@
   </div>
 </div>
 
-<!-- ── AI Panel ── -->
-<div class="overlay" id="aiOverlay" onclick="closeOnBg(event,'aiOverlay')">
-  <div class="panel">
-    <div class="panel-header">
-      <div><div class="panel-title">AI 生成词库</div></div>
-      <button class="panel-close" onclick="closePanel('aiOverlay')">×</button>
-    </div>
-    <div class="panel-body">
-      <div>
-        <div class="panel-label" style="margin-bottom:10px">主题</div>
-        <div class="ai-options">
-          <div class="option-row">
-            <button class="opt-btn selected" onclick="selectOpt(this)">JLPT N5</button>
-            <button class="opt-btn" onclick="selectOpt(this)">JLPT N4</button>
-            <button class="opt-btn" onclick="selectOpt(this)">日常生活</button>
-            <button class="opt-btn" onclick="selectOpt(this)">旅行</button>
-            <button class="opt-btn" onclick="selectOpt(this)">饮食</button>
-            <button class="opt-btn" onclick="selectOpt(this)">商务</button>
-          </div>
-          <input class="panel-input" id="customTheme" placeholder="或输入自定义主题，如：动物、天气…">
-        </div>
-      </div>
-
-      <button class="generate-btn" id="generateBtn" onclick="generateWords()">
-        <span id="generateBtnText">生 成 词 汇</span>
-      </button>
-      <div id="previewSection" style="display:none;flex-direction:column;gap:12px;">
-        <div class="panel-label" id="previewLabel">生成结果</div>
-        <div class="preview-list" id="previewList"></div>
-        <button class="add-all-btn" onclick="addAllPreview()">全部加入词库</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ── Manual Panel ── -->
 <div class="overlay" id="manualOverlay" onclick="closeOnBg(event,'manualOverlay')">
@@ -564,26 +533,60 @@
 // ── Data ──
 const PAGE_SIZE = 10;
 
-let words = [
-  { kanji:'私', kana:'わたし', romaji:'watashi', type:'代词', meaning:'我', example:'私は学生です。', source:'default' },
-  { kanji:'食べる', kana:'たべる', romaji:'taberu', type:'动词', meaning:'吃', example:'毎日ご飯を食べる。', source:'default' },
-  { kanji:'学生', kana:'がくせい', romaji:'gakusei', type:'名词', meaning:'学生', example:'私は学生です。', source:'default' },
-  { kanji:'水', kana:'みず', romaji:'mizu', type:'名词', meaning:'水', example:'水を飲みます。', source:'default' },
-  { kanji:'見る', kana:'みる', romaji:'miru', type:'动词', meaning:'看', example:'映画を見る。', source:'default' },
-  { kanji:'美しい', kana:'うつくしい', romaji:'utsukushii', type:'形容词', meaning:'美丽的', example:'花が美しい。', source:'default' },
-  { kanji:'時間', kana:'じかん', romaji:'jikan', type:'名词', meaning:'时间', example:'時間がありますか。', source:'default' },
-  { kanji:'友達', kana:'ともだち', romaji:'tomodachi', type:'名词', meaning:'朋友', example:'友達と話す。', source:'default' },
-  { kanji:'行く', kana:'いく', romaji:'iku', type:'动词', meaning:'去', example:'学校へ行く。', source:'default' },
-  { kanji:'静か', kana:'しずか', romaji:'shizuka', type:'形容词', meaning:'安静的', example:'図書館は静かです。', source:'default' },
-];
+let allVocab = { n5: [], n4: [] }; // loaded from JSON
+let words = [];       // active word list (filtered by level + user-added)
+let userWords = [];   // manually added words
+let currentLevel = 'all'; // 'all' | 'N5' | 'N4'
 
-let reviewSet = new Set(); // kanji keys
-let currentGroup = []; // indices into words[] for current page
-let groupOffset = 0;   // which page we're on (0-based)
-let current = 0;       // index within currentGroup
+let reviewSet = new Set();
+let currentGroup = [];
+let groupOffset = 0;
+let current = 0;
 let isFlipped = false;
-let previewWords = [];
 let lookedUpWord = null;
+
+async function loadVocab() {
+  try {
+    const res = await fetch('vocab.json');
+    allVocab = await res.json();
+  } catch(e) {
+    // fallback: empty vocab, user can still add manually
+    allVocab = { n5: [], n4: [] };
+  }
+  applyLevel(currentLevel);
+}
+
+function applyLevel(level) {
+  currentLevel = level;
+  let base = [];
+  if (level === 'all') base = [...allVocab.n5, ...allVocab.n4];
+  else if (level === 'N5') base = [...allVocab.n5];
+  else if (level === 'N4') base = [...allVocab.n4];
+  // merge user words (avoid duplication)
+  const baseKeys = new Set(base.map(w => w.kanji));
+  const extra = userWords.filter(w => !baseKeys.has(w.kanji));
+  words = [...base.map(w => ({...w, source: w.level || level})), ...extra];
+
+  // update level button styles
+  ['All','N5','N4'].forEach(l => {
+    const btn = document.getElementById('btn' + l);
+    if (btn) btn.classList.toggle('active', (l.toLowerCase() === level || (l === 'All' && level === 'all')));
+  });
+
+  if (words.length >= 100) {
+    const idx = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = idx.slice(0, PAGE_SIZE);
+    groupOffset = -1;
+  } else {
+    buildGroup(0);
+  }
+  current = 0; isFlipped = false;
+  updateCard();
+}
+
+function setLevel(level) {
+  applyLevel(level);
+}
 
 // ── Group management ──
 function buildGroup(offset) {
@@ -892,10 +895,6 @@ function rRemoveCurrent() {
 // ── Panels ──
 function openPanel(name) {
   document.getElementById(name + 'Overlay').classList.add('open');
-  if (name === 'ai') {
-    document.getElementById('previewSection').style.display = 'none';
-    previewWords = [];
-  }
   if (name === 'manual') resetManualPanel();
   if (name === 'review') openReviewPanel();
 }
@@ -910,74 +909,6 @@ function selectOpt(btn) {
   btn.classList.add('selected');
 }
 
-// ── AI Generate ──
-async function generateWords() {
-  const customTheme = document.getElementById('customTheme').value.trim();
-  const themeBtn = document.querySelector('#aiOverlay .ai-options .opt-btn.selected');
-  const theme = customTheme || (themeBtn ? themeBtn.textContent.trim() : 'JLPT N5');
-  const count = 10;
-
-  const btn = document.getElementById('generateBtn');
-  const btnText = document.getElementById('generateBtnText');
-  btn.disabled = true;
-  btnText.textContent = '生成中…';
-  btn.insertAdjacentHTML('beforeend','<div class="loading-bar" id="loadBar"></div>');
-
-  const existingKanji = words.map(w => w.kanji);
-  try {
-    const res = await fetch('https://vercel-proxy-five-green.vercel.app/api/proxy', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:2000,
-        system:`你是一个日语教学助手。请严格返回 JSON 数组，不要有任何其他文字、markdown 或代码块。
-数组中每个对象包含：kanji、kana（平假名）、romaji、type（词性）、meaning（中文释义）、example（短例句）。`,
-        messages:[{ role:'user', content:`请生成 ${count} 个与 ${theme} 相关的日语单词。以下单词已存在，必须完全避免重复（包括同一个词的不同写法）：${existingKanji.length ? existingKanji.join('、') : '（无）'}。只返回 JSON 数组，不要任何说明。` }]
-      })
-    });
-    const data = await res.json();
-    const clean = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
-    previewWords = JSON.parse(clean);
-    showPreview(previewWords, existingKanji);
-  } catch(e) {
-    showToast('生成失败，请重试');
-  } finally {
-    btn.disabled = false;
-    btnText.textContent = '重新生成';
-    document.getElementById('loadBar')?.remove();
-  }
-}
-
-function showPreview(list, existing) {
-  const sec = document.getElementById('previewSection');
-  const ul = document.getElementById('previewList');
-  sec.style.display = 'flex';
-  ul.innerHTML = '';
-  list.forEach(w => {
-    const dup = existing.includes(w.kanji);
-    ul.insertAdjacentHTML('beforeend', `
-      <div class="preview-item">
-        <div class="preview-left">
-          <span class="preview-kanji">${w.kanji}</span>
-          <span class="preview-kana">${w.kana}</span>
-          <span class="preview-meaning">${w.meaning}</span>
-        </div>
-        ${dup ? '<span class="preview-dup">已有</span>' : ''}
-      </div>`);
-  });
-  document.getElementById('previewLabel').textContent = `生成结果（${list.length} 个）`;
-}
-
-function addAllPreview() {
-  if (!previewWords.length) return;
-  const existing = new Set(words.map(w => w.kanji));
-  let added = 0;
-  previewWords.forEach(w => { if (!existing.has(w.kanji)) { words.push({...w, source:'ai'}); added++; } });
-  buildGroup(groupOffset); // refresh current group in case new words added to same page
-  updateCard();
-  closePanel('aiOverlay');
-  showToast(`已添加 ${added} 个新词汇`);
-}
 
 // ── Manual Lookup ──
 function resetManualPanel() {
@@ -1060,8 +991,9 @@ function addManualWord() {
   if (!lookedUpWord) { showToast('请先查询单词'); return; }
   if (words.find(w => w.kanji === lookedUpWord.kanji)) { showToast(`"${lookedUpWord.kanji}" 已在词库中`); return; }
   const label = lookedUpWord.kanji;
-  words.push({...lookedUpWord, source:'user'});
-  // Go to last group where new word was added
+  const newWord = {...lookedUpWord, source:'user'};
+  userWords.push(newWord);
+  words.push(newWord);
   buildGroup(totalGroups() - 1);
   current = currentGroup.indexOf(words.length - 1);
   if (current < 0) current = 0;
@@ -1069,7 +1001,7 @@ function addManualWord() {
   updateCard();
   closePanel('manualOverlay');
   resetManualPanel();
-  showToast(`"${label}" 已添加`);
+  showToast('"' + label + '" 已添加');
 }
 
 // ── Toast ──
@@ -1090,14 +1022,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Init ──
-if (words.length >= 100) {
-  const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
-  currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
-  groupOffset = -1;
-} else {
-  buildGroup(0);
-}
-updateCard();
+loadVocab();
 </script>
 </body>
 </html>
