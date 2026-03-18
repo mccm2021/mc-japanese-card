@@ -925,7 +925,7 @@ async function generateWords() {
 
   const existingKanji = words.map(w => w.kanji);
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://vercel-proxy-five-green.vercel.app/api/proxy', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -1000,7 +1000,7 @@ async function lookupWord() {
   document.getElementById('lookupResult').style.display = 'none';
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://vercel-proxy-five-green.vercel.app/api/proxy', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
