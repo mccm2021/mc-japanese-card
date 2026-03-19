@@ -1,106 +1,1022 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日语闪卡 - 极简背诵</title>
-    <style>
-        :root { --bg: #fdfcf8; --card: #ffffff; --text: #333; --sub: #888; }
-        body { background: var(--bg); font-family: "Helvetica Neue", "Helvetica", "Arial", "PingFang SC", "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; color: var(--text); }
-        .card-container { perspective: 1000px; width: 300px; height: 200px; cursor: pointer; margin-bottom: 40px; }
-        .card { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-radius: 12px; }
-        .card.flipped { transform: rotateY(180deg); }
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--card); border-radius: 12px; border: 1px solid #eee; padding: 20px; box-sizing: border-box; }
-        .card-back { transform: rotateY(180deg); background: #fafafa; }
-        .kanji { font-size: 42px; font-weight: 500; margin-bottom: 10px; }
-        .kana { font-size: 20px; color: var(--sub); }
-        .meaning { font-size: 24px; color: #444; margin-bottom: 8px; }
-        .example { font-size: 14px; color: var(--sub); line-height: 1.4; }
-        .btns { display: flex; gap: 20px; }
-        button { background: none; border: 1px solid #ddd; padding: 8px 24px; border-radius: 20px; cursor: pointer; color: var(--sub); transition: all 0.3s; }
-        button:hover { border-color: #999; color: var(--text); background: #f5f5f5; }
-        .count { margin-top: 20px; font-size: 12px; color: #ccc; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC日本語単語カード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0eb;
+    --card-bg: #faf8f5;
+    --text-primary: #2c2c2c;
+    --text-secondary: #7a7570;
+    --text-kana: #5a5450;
+    --accent: #8b7355;
+    --accent-light: #c4aa88;
+    --border: #ddd8d0;
+    --btn-bg: #f0ebe3;
+    --btn-hover: #e5ddd0;
+    --shadow: rgba(139,115,85,0.12);
+    --panel-bg: rgba(250,248,245,0.97);
+    --review-color: #c0704a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Noto Serif SC','Noto Serif JP',serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--text-primary);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(196,170,136,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,115,85,0.06) 0%, transparent 60%);
+  }
+
+  /* ── Header ── */
+  header {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:18px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    background:rgba(245,240,235,0.92); backdrop-filter:blur(10px);
+  }
+  .logo-wrap { display:flex; align-items:baseline; gap:10px; }
+  .logo { font-size:13px; font-weight:300; letter-spacing:.4em; color:var(--accent); }
+  .logo-jp { font-size:11px; font-family:'Noto Serif JP',serif; color:var(--text-secondary); letter-spacing:.2em; }
+  .header-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .hbtn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:6px 14px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+    white-space:nowrap;
+  }
+  .hbtn:hover { border-color:var(--accent-light); color:var(--accent); background:var(--btn-bg); }
+  .hbtn.primary { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
+  .hbtn.primary:hover { background:#7a6248; }
+  .hbtn.review-btn { border-color:rgba(192,112,74,.4); color:var(--review-color); }
+  .hbtn.level-btn.active { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
+  .hbtn.review-btn:hover { background:rgba(192,112,74,.08); border-color:var(--review-color); }
+  .review-badge {
+    display:inline-block; background:var(--review-color); color:#fff;
+    font-size:9px; border-radius:8px; padding:1px 6px; margin-left:4px;
+    font-family:sans-serif; font-weight:600; letter-spacing:0; vertical-align:middle;
+  }
+
+  /* ── Main ── */
+  .main {
+    display:flex; flex-direction:column; align-items:center;
+    gap:36px; padding:110px 24px 80px;
+    width:100%; max-width:520px;
+  }
+
+  /* Mode bar */
+  .mode-bar {
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+  }
+  .mode-label {
+    font-size:10px; letter-spacing:.35em; color:var(--accent-light); font-weight:300;
+    text-transform:uppercase;
+  }
+  .shuffle-btn {
+    background:none; border:none; font-size:11px; letter-spacing:.2em;
+    color:var(--text-secondary); cursor:pointer; padding:4px 0;
+    font-family:'Noto Serif SC',serif; transition:color .2s;
+  }
+  .shuffle-btn:hover { color:var(--accent); }
+
+  /* Progress */
+  .progress-wrap { display:flex; flex-direction:column; gap:10px; width:100%; }
+  .progress-top { display:flex; justify-content:space-between; width:100%; }
+  .progress-text { font-size:11px; letter-spacing:.3em; color:var(--text-secondary); font-weight:300; }
+  .group-text { font-size:11px; letter-spacing:.2em; color:var(--accent-light); font-weight:300; }
+  .progress-bar { width:100%; height:1px; background:var(--border); position:relative; }
+  .progress-fill { position:absolute; top:0; left:0; height:100%; background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
+
+  /* Card */
+  .scene { width:100%; max-width:400px; height:240px; perspective:1200px; cursor:pointer; position:relative; }
+  .card {
+    width:100%; height:100%; position:relative;
+    transform-style:preserve-3d;
+    transition:transform .65s cubic-bezier(.4,0,.2,1);
+  }
+  .card.flipped { transform:rotateY(180deg); }
+  .card-face {
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:2px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    box-shadow:0 2px 8px var(--shadow), 0 12px 40px rgba(139,115,85,0.07), inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  .card-back { transform:rotateY(180deg); }
+  .word-type { font-size:10px; letter-spacing:.4em; color:var(--accent-light); font-weight:300; }
+  .kanji { font-family:'Noto Serif JP',serif; font-size:62px; font-weight:300; color:var(--text-primary); line-height:1; letter-spacing:.05em; }
+  .hint { font-size:10px; letter-spacing:.3em; color:var(--accent-light); font-weight:300; margin-top:6px; }
+  .kana { font-family:'Noto Serif JP',serif; font-size:22px; font-weight:300; color:var(--text-kana); letter-spacing:.15em; }
+  .romaji { font-size:11px; letter-spacing:.25em; color:var(--accent-light); font-weight:300; font-family:Georgia,serif; font-style:italic; }
+  .divider { width:32px; height:1px; background:var(--border); }
+  .meaning { font-size:22px; font-weight:300; color:var(--text-primary); letter-spacing:.1em; }
+  .example { font-size:11px; color:var(--text-secondary); letter-spacing:.08em; font-weight:300; max-width:280px; text-align:center; line-height:1.7; font-family:'Noto Serif JP',serif; }
+
+  /* Save (bookmark) button on card */
+  .save-btn {
+    position:absolute; top:12px; right:12px; z-index:10;
+    background:none; border:none; cursor:pointer;
+    font-size:18px; line-height:1; padding:4px;
+    opacity:.35; transition:opacity .2s, transform .2s;
+    color:var(--review-color);
+  }
+  .save-btn:hover { opacity:.8; transform:scale(1.15); }
+  .save-btn.saved { opacity:1; }
+
+  /* Empty state */
+  .empty-state {
+    width:100%; max-width:400px; height:240px;
+    border:1px dashed var(--border); border-radius:2px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  }
+  .empty-icon { font-size:32px; opacity:.25; }
+  .empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+
+  /* Dots */
+  .dots { display:flex; gap:7px; flex-wrap:wrap; justify-content:center; max-width:320px; }
+  .dot { width:4px; height:4px; border-radius:50%; background:var(--border); transition:background .25s,transform .25s; cursor:pointer; }
+  .dot.active { background:var(--accent); transform:scale(1.4); }
+  .dot.review-dot { background:rgba(192,112,74,.4); }
+  .dot.review-dot.active { background:var(--review-color); }
+
+  /* Controls */
+  .controls { display:flex; align-items:center; gap:16px; }
+  .btn {
+    background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:11px 26px; font-family:'Noto Serif SC',serif; font-size:12px;
+    font-weight:300; letter-spacing:.3em; color:var(--text-primary);
+    cursor:pointer; transition:all .2s;
+  }
+  .btn:hover { background:var(--btn-hover); border-color:var(--accent-light); color:var(--accent); }
+  .btn:active { transform:scale(.98); }
+  .btn-dot { width:4px; height:4px; border-radius:50%; background:var(--accent-light); }
+
+  /* Next group banner */
+  .next-group-wrap {
+    display:none; flex-direction:column; align-items:center; gap:14px; width:100%;
+  }
+  .next-group-wrap.visible { display:flex; }
+  .group-done-text { font-size:12px; letter-spacing:.25em; color:var(--text-secondary); font-weight:300; }
+  .next-group-btn {
+    background:var(--accent); border:none; border-radius:1px;
+    padding:12px 36px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.4em; color:#faf8f5; cursor:pointer; transition:background .2s;
+  }
+  .next-group-btn:hover { background:#7a6248; }
+
+  /* ── Overlay ── */
+  .overlay {
+    position:fixed; inset:0; z-index:200;
+    background:rgba(44,40,36,.4); backdrop-filter:blur(4px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .3s;
+  }
+  .overlay.open { opacity:1; pointer-events:all; }
+
+  /* Panel */
+  .panel {
+    background:var(--panel-bg); border:1px solid var(--border); border-radius:2px;
+    width:90%; max-width:480px; max-height:85vh; overflow-y:auto;
+    transform:translateY(16px); transition:transform .3s;
+    box-shadow:0 24px 80px rgba(44,40,36,.18);
+  }
+  .overlay.open .panel { transform:translateY(0); }
+  .panel-header {
+    padding:22px 28px 16px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; background:var(--panel-bg); z-index:1;
+  }
+  .panel-title { font-size:13px; letter-spacing:.3em; color:var(--accent); font-weight:300; }
+  .panel-subtitle { font-size:10px; letter-spacing:.2em; color:var(--text-secondary); margin-top:3px; }
+  .panel-close {
+    background:none; border:none; font-size:18px; color:var(--text-secondary);
+    cursor:pointer; line-height:1; padding:0 4px; flex-shrink:0;
+  }
+  .panel-close:hover { color:var(--text-primary); }
+  .panel-body { padding:24px 28px 28px; display:flex; flex-direction:column; gap:20px; }
+  .panel-label { font-size:11px; letter-spacing:.25em; color:var(--text-secondary); font-weight:300; }
+  .panel-input {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:1px;
+    padding:10px 14px; font-family:'Noto Serif SC',serif; font-size:13px;
+    color:var(--text-primary); outline:none; transition:border-color .2s;
+  }
+  .panel-input:focus { border-color:var(--accent-light); }
+  .panel-input::placeholder { color:var(--text-secondary); font-size:12px; }
+
+  /* AI Panel */
+  .ai-options { display:flex; flex-direction:column; gap:10px; }
+  .option-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .opt-btn {
+    background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:7px 14px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+  }
+  .opt-btn:hover,.opt-btn.selected { background:var(--accent); border-color:var(--accent); color:#faf8f5; }
+
+  .generate-btn {
+    width:100%; background:var(--accent); border:none; border-radius:1px;
+    padding:13px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.35em; color:#faf8f5; cursor:pointer; transition:background .2s;
+    position:relative; overflow:hidden;
+  }
+  .generate-btn:hover { background:#7a6248; }
+  .generate-btn:disabled { background:var(--accent-light); cursor:not-allowed; }
+  .loading-bar {
+    position:absolute; bottom:0; left:0; height:2px; background:rgba(255,255,255,.5);
+    animation:loadpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes loadpulse { 0%{width:0;left:0} 50%{width:60%;left:20%} 100%{width:0;left:100%} }
+
+  /* Preview list */
+  .preview-list { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:1px; overflow:hidden; }
+  .preview-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid var(--border); background:var(--card-bg); font-size:12px;
+  }
+  .preview-item:last-child { border-bottom:none; }
+  .preview-left { display:flex; align-items:baseline; gap:10px; }
+  .preview-kanji { font-family:'Noto Serif JP',serif; font-size:16px; font-weight:300; }
+  .preview-kana { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; }
+  .preview-meaning { font-size:12px; color:var(--text-secondary); }
+  .preview-dup { font-size:10px; color:var(--accent-light); letter-spacing:.1em; }
+  .add-all-btn {
+    width:100%; background:var(--btn-bg); border:1px solid var(--border); border-radius:1px;
+    padding:11px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.3em; color:var(--text-primary); cursor:pointer; transition:all .2s;
+  }
+  .add-all-btn:hover { background:var(--btn-hover); border-color:var(--accent-light); }
+
+  /* Lookup / Manual */
+  .lookup-btn {
+    background:var(--accent); border:none; border-radius:1px;
+    padding:10px 18px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.3em; color:#faf8f5; cursor:pointer; transition:background .2s; white-space:nowrap; flex-shrink:0;
+  }
+  .lookup-btn:hover { background:#7a6248; }
+  .lookup-btn:disabled { background:var(--accent-light); cursor:not-allowed; }
+  .result-card {
+    background:var(--bg); border:1px solid var(--border); border-radius:2px; padding:18px 20px;
+    display:flex; flex-direction:column; gap:7px;
+  }
+  .result-row { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .result-kanji { font-family:'Noto Serif JP',serif; font-size:26px; font-weight:300; }
+  .result-kana { font-family:'Noto Serif JP',serif; font-size:15px; font-weight:300; color:var(--text-kana); }
+  .result-type { font-size:10px; letter-spacing:.3em; color:var(--accent-light); }
+  .result-romaji { font-size:11px; color:var(--accent-light); font-family:Georgia,serif; font-style:italic; letter-spacing:.15em; }
+  .result-meaning { font-size:18px; font-weight:300; letter-spacing:.05em; }
+  .result-example { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; line-height:1.7; }
+  .edit-toggle-btn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:7px 18px; font-family:'Noto Serif SC',serif; font-size:11px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s;
+  }
+  .edit-toggle-btn:hover { border-color:var(--accent-light); color:var(--accent); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field { display:flex; flex-direction:column; gap:6px; }
+  .form-field.full { grid-column:1/-1; }
+  .add-word-btn {
+    width:100%; background:var(--accent); border:none; border-radius:1px;
+    padding:13px; font-family:'Noto Serif SC',serif; font-size:12px;
+    letter-spacing:.35em; color:#faf8f5; cursor:pointer; transition:background .2s;
+  }
+  .add-word-btn:hover { background:#7a6248; }
+
+  /* ── Review Panel ── */
+  .review-empty {
+    text-align:center; padding:40px 0;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .review-empty-icon { font-size:28px; opacity:.25; }
+  .review-empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+
+  .review-list { display:flex; flex-direction:column; gap:0; }
+  .review-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 0; border-bottom:1px solid var(--border);
+    animation:fadeIn .25s ease;
+  }
+  .review-item:last-child { border-bottom:none; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+  .review-item-left { display:flex; flex-direction:column; gap:4px; }
+  .review-item-kanji { font-family:'Noto Serif JP',serif; font-size:20px; font-weight:300; }
+  .review-item-sub { font-size:11px; color:var(--text-secondary); font-family:'Noto Serif JP',serif; letter-spacing:.1em; }
+  .review-item-meaning { font-size:12px; color:var(--text-primary); letter-spacing:.05em; margin-top:2px; }
+  .remove-review-btn {
+    background:none; border:1px solid var(--border); border-radius:1px;
+    padding:5px 12px; font-family:'Noto Serif SC',serif; font-size:10px;
+    letter-spacing:.2em; color:var(--text-secondary); cursor:pointer; transition:all .2s; flex-shrink:0;
+  }
+  .remove-review-btn:hover { border-color:var(--review-color); color:var(--review-color); }
+
+  /* Toast */
+  .toast {
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--text-primary); color:#faf8f5; padding:9px 22px;
+    font-size:11px; letter-spacing:.2em; border-radius:1px;
+    opacity:0; transition:all .3s; z-index:400; pointer-events:none; white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ── Review Modal ── */
+  .review-modal {
+    background:var(--panel-bg); border:1px solid var(--border); border-radius:2px;
+    width:90%; max-width:520px; max-height:90vh; overflow-y:auto;
+    transform:translateY(16px); transition:transform .3s;
+    box-shadow:0 24px 80px rgba(44,40,36,.18);
+    padding:28px 32px 36px;
+    display:flex; flex-direction:column; gap:28px;
+  }
+  .overlay.open .review-modal { transform:translateY(0); }
+  .review-modal-header {
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--border); padding-bottom:16px;
+  }
+  .panel-subtitle { font-size:10px; letter-spacing:.2em; color:var(--text-secondary); margin-top:3px; }
+  .review-empty {
+    text-align:center; padding:48px 0;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .review-empty-icon { font-size:28px; opacity:.25; }
+  .review-empty-text { font-size:12px; color:var(--text-secondary); letter-spacing:.2em; font-weight:300; }
+  .review-modal::-webkit-scrollbar { width:3px; }
+  .review-modal::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  body::before {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.4;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+  .main,header,.overlay { position:relative; z-index:1; }
+  .panel::-webkit-scrollbar { width:3px; }
+  .panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
 </head>
 <body>
 
-    <div class="card-container" onclick="flipCard()">
-        <div class="card" id="card">
-            <div class="card-face card-front">
-                <div class="kanji" id="display-kanji">読み込み中...</div>
-            </div>
-            <div class="card-face card-back">
-                <div class="meaning" id="display-meaning">释义</div>
-                <div class="kana" id="display-kana">假名</div>
-                <div class="example" id="display-example">例句加载中...</div>
-            </div>
+<header>
+  <div class="logo-wrap">
+    <span class="logo">Tango</span>
+    <span class="logo-jp">単語カード</span>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn review-btn" onclick="openPanel('review')">
+      复习列表<span class="review-badge" id="reviewBadge" style="display:none">0</span>
+    </button>
+    <button class="hbtn" onclick="openPanel('manual')">＋ 添加单词</button>
+    <button class="hbtn level-btn active" id="btnAll" onclick="setLevel('all')">全部</button>
+    <button class="hbtn level-btn" id="btnN5" onclick="setLevel('N5')">N5</button>
+    <button class="hbtn level-btn" id="btnN4" onclick="setLevel('N4')">N4</button>
+  </div>
+</header>
+
+<div class="main">
+  <!-- Mode bar -->
+  <div class="mode-bar">
+    <span class="mode-label" id="modeLabel">全部词汇</span>
+    <button class="shuffle-btn" id="shuffleBtn" onclick="shuffleGroup()" style="display:none">↺ 换一批</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="progress-text" id="progressText">— / —</span>
+      <span class="group-text" id="groupText"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Card -->
+  <div class="scene" id="scene" onclick="flipCard()">
+    <button class="save-btn" id="saveBtn" onclick="event.stopPropagation();toggleReview()" title="加入复习列表">♡</button>
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <span class="word-type" id="wordType">—</span>
+        <span class="kanji" id="kanjiDisplay">—</span>
+        <span class="hint">点击翻面 · タップ</span>
+      </div>
+      <div class="card-face card-back">
+        <span class="kana" id="kanaDisplay">—</span>
+        <span class="romaji" id="romajiDisplay">—</span>
+        <div class="divider"></div>
+        <span class="meaning" id="meaningDisplay">—</span>
+        <span class="example" id="exampleDisplay"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dots -->
+  <div class="dots" id="dots"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn" onclick="prevCard()">上一个</button>
+    <div class="btn-dot"></div>
+    <button class="btn" onclick="nextCard()">下一个</button>
+  </div>
+
+  <!-- Next group -->
+  <div class="next-group-wrap" id="nextGroupWrap">
+    <span class="group-done-text">这一批学完了 ✓</span>
+    <button class="next-group-btn" onclick="nextGroup()">换 一 批</button>
+  </div>
+</div>
+
+
+<!-- ── Manual Panel ── -->
+<div class="overlay" id="manualOverlay" onclick="closeOnBg(event,'manualOverlay')">
+  <div class="panel">
+    <div class="panel-header">
+      <div><div class="panel-title">添加单词</div></div>
+      <button class="panel-close" onclick="closePanel('manualOverlay')">×</button>
+    </div>
+    <div class="panel-body">
+      <div>
+        <div class="panel-label" style="margin-bottom:8px">输入日语单词</div>
+        <div style="display:flex;gap:8px">
+          <input class="panel-input" id="mKanji" placeholder="输入汉字或假名，如：勉強、たべる…"
+            style="flex:1" onkeydown="if(event.key==='Enter')lookupWord()">
+          <button class="lookup-btn" id="lookupBtn" onclick="lookupWord()">查　询</button>
         </div>
+        <div id="lookupHint" style="font-size:10px;letter-spacing:.2em;color:var(--accent-light);margin-top:8px;min-height:16px"></div>
+      </div>
+      <div id="lookupResult" style="display:none;flex-direction:column;gap:14px">
+        <div class="result-card">
+          <div class="result-row">
+            <span class="result-kanji" id="rKanji"></span>
+            <span class="result-kana" id="rKana"></span>
+            <span class="result-type" id="rType"></span>
+          </div>
+          <div class="result-romaji" id="rRomaji"></div>
+          <div class="result-meaning" id="rMeaning"></div>
+          <div class="result-example" id="rExample"></div>
+        </div>
+        <div style="text-align:center">
+          <button class="edit-toggle-btn" onclick="toggleEdit()">手动修改字段</button>
+        </div>
+        <div id="editFields" style="display:none;flex-direction:column;gap:12px">
+          <div class="form-grid">
+            <div class="form-field"><label class="panel-label">假名</label><input class="panel-input" id="mKana"></div>
+            <div class="form-field"><label class="panel-label">罗马字</label><input class="panel-input" id="mRomaji"></div>
+            <div class="form-field"><label class="panel-label">词性</label><input class="panel-input" id="mType"></div>
+            <div class="form-field"><label class="panel-label">中文释义</label><input class="panel-input" id="mMeaning"></div>
+            <div class="form-field full"><label class="panel-label">例句</label><input class="panel-input" id="mExample"></div>
+          </div>
+          <button class="edit-toggle-btn" onclick="syncEditToCard()">应用修改</button>
+        </div>
+        <button class="add-word-btn" onclick="addManualWord()">添 加 到 词 库</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="btns">
-        <button onclick="prevCard(event)">上一个</button>
-        <button onclick="nextCard(event)">下一个</button>
+<!-- ── Review Overlay (flashcard mode) ── -->
+<div class="overlay" id="reviewOverlay" onclick="closeOnBg(event,'reviewOverlay')">
+  <div class="review-modal">
+    <div class="review-modal-header">
+      <div>
+        <div class="panel-title">复习列表</div>
+        <div class="panel-subtitle" id="reviewSubtitle"></div>
+      </div>
+      <button class="panel-close" onclick="closePanel('reviewOverlay')">×</button>
     </div>
+    <div id="reviewEmpty" style="display:none">
+      <div class="review-empty">
+        <div class="review-empty-icon">♡</div>
+        <div class="review-empty-text">还没有标记任何单词</div>
+        <div class="review-empty-text" style="font-size:10px;opacity:.6;margin-top:4px">点击卡片右上角的 ♡ 来标记</div>
+      </div>
+    </div>
+    <div id="reviewCardWrap" style="display:none; flex-direction:column; align-items:center; gap:28px;">
+      <div class="progress-wrap" style="width:100%;max-width:400px;">
+        <div class="progress-top">
+          <span class="progress-text" id="rProgressText">— / —</span>
+          <span class="group-text">复习模式</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="rProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="scene" id="rScene" onclick="rFlipCard()">
+        <button class="save-btn saved" id="rSaveBtn" onclick="event.stopPropagation();rRemoveCurrent()" title="记住了，从列表移除">♥</button>
+        <div class="card" id="rCard">
+          <div class="card-face card-front">
+            <span class="word-type" id="rWordType"></span>
+            <span class="kanji" id="rKanjiDisplay"></span>
+            <span class="hint">点击翻面 · タップ</span>
+          </div>
+          <div class="card-face card-back">
+            <span class="kana" id="rKanaDisplay"></span>
+            <span class="romaji" id="rRomajiDisplay"></span>
+            <div class="divider"></div>
+            <span class="meaning" id="rMeaningDisplay"></span>
+            <span class="example" id="rExampleDisplay"></span>
+          </div>
+        </div>
+      </div>
+      <div class="dots" id="rDots"></div>
+      <div class="controls">
+        <button class="btn" onclick="rPrev()">上一个</button>
+        <div class="btn-dot"></div>
+        <button class="btn" onclick="rNext()">下一个</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div class="count" id="display-count">0 / 0</div>
+<div class="toast" id="toast"></div>
 
-    <script>
-        // 【这里就是 Skill 产生的数据内容】
-        const wordList = [
-            { kanji: "私", kana: "わたし", meaning: "我", example: "私は学生です。" },
-            { kanji: "食べる", kana: "たべる", meaning: "吃", example: "リンゴを食べます。" },
-            { kanji: "日本語", kana: "にほんご", meaning: "日语", example: "日本語を勉強しています。" },
-            { kanji: "美しい", kana: "うつくしい", meaning: "美丽", example: "富士山は美しいです。" },
-            { kanji: "買い物", kana: "かいもの", meaning: "购物", example: "デパートで買い物をします。" },
-            { kanji: "友達", kana: "ともだち", meaning: "朋友", example: "友達と遊びに行きます。" },
-            { kanji: "先生", kana: "せんせい", meaning: "老师", example: "先生、質問があります。" },
-            { kanji: "歩く", kana: "あるく", meaning: "步行", example: "公園を歩きます。" },
-            { kanji: "明日", kana: "あした", meaning: "明天", example: "明日は雨が降るでしょう。" },
-            { kanji: "お茶", kana: "おちゃ", meaning: "茶", example: "お茶を飲みませんか？" }
-        ];
+<script>
+// ── Data ──
+const PAGE_SIZE = 10;
 
-        // 随机打乱单词顺序 (Fisher-Yates Shuffle)
-        wordList.sort(() => Math.random() - 0.5);
+let allVocab = { n5: [], n4: [] }; // loaded from JSON
+let words = [];       // active word list (filtered by level + user-added)
+let userWords = [];   // manually added words
+let currentLevel = 'all'; // 'all' | 'N5' | 'N4'
 
-        let currentIndex = 0;
+let reviewSet = new Set();
+let currentGroup = [];
+let groupOffset = 0;
+let current = 0;
+let isFlipped = false;
+let lookedUpWord = null;
 
-        function updateCard() {
-            const word = wordList[currentIndex];
-            document.getElementById('display-kanji').innerText = word.kanji;
-            document.getElementById('display-kana').innerText = word.kana;
-            document.getElementById('display-meaning').innerText = word.meaning;
-            document.getElementById('display-example').innerText = word.example;
-            document.getElementById('display-count').innerText = `${currentIndex + 1} / ${wordList.length}`;
-            document.getElementById('card').classList.remove('flipped');
-            
-            // 自动朗读正面单词
-            speak(word.kanji);
-        }
+function loadVocab() {
+  allVocab = {"n5": [{"kanji": "私", "kana": "わたし", "romaji": "watashi", "type": "代词", "meaning": "我", "example": "私は学生です。", "level": "N5"}, {"kanji": "あなた", "kana": "あなた", "romaji": "anata", "type": "代词", "meaning": "你", "example": "あなたは先生ですか。", "level": "N5"}, {"kanji": "彼", "kana": "かれ", "romaji": "kare", "type": "代词", "meaning": "他", "example": "彼は医者です。", "level": "N5"}, {"kanji": "彼女", "kana": "かのじょ", "romaji": "kanojo", "type": "代词", "meaning": "她", "example": "彼女は学生です。", "level": "N5"}, {"kanji": "これ", "kana": "これ", "romaji": "kore", "type": "代词", "meaning": "这个", "example": "これは本です。", "level": "N5"}, {"kanji": "それ", "kana": "それ", "romaji": "sore", "type": "代词", "meaning": "那个", "example": "それは何ですか。", "level": "N5"}, {"kanji": "あれ", "kana": "あれ", "romaji": "are", "type": "代词", "meaning": "那个（远）", "example": "あれは山です。", "level": "N5"}, {"kanji": "ここ", "kana": "ここ", "romaji": "koko", "type": "代词", "meaning": "这里", "example": "ここは学校です。", "level": "N5"}, {"kanji": "そこ", "kana": "そこ", "romaji": "soko", "type": "代词", "meaning": "那里", "example": "そこに座ってください。", "level": "N5"}, {"kanji": "あそこ", "kana": "あそこ", "romaji": "asoko", "type": "代词", "meaning": "那里（远）", "example": "あそこに駅があります。", "level": "N5"}, {"kanji": "人", "kana": "ひと", "romaji": "hito", "type": "名词", "meaning": "人", "example": "あの人は誰ですか。", "level": "N5"}, {"kanji": "友達", "kana": "ともだち", "romaji": "tomodachi", "type": "名词", "meaning": "朋友", "example": "友達と映画を見ます。", "level": "N5"}, {"kanji": "先生", "kana": "せんせい", "romaji": "sensei", "type": "名词", "meaning": "老师", "example": "田中先生はやさしいです。", "level": "N5"}, {"kanji": "学生", "kana": "がくせい", "romaji": "gakusei", "type": "名词", "meaning": "学生", "example": "私は大学生です。", "level": "N5"}, {"kanji": "家族", "kana": "かぞく", "romaji": "kazoku", "type": "名词", "meaning": "家人", "example": "家族と旅行します。", "level": "N5"}, {"kanji": "父", "kana": "ちち", "romaji": "chichi", "type": "名词", "meaning": "父亲", "example": "父は会社員です。", "level": "N5"}, {"kanji": "母", "kana": "はは", "romaji": "haha", "type": "名词", "meaning": "母亲", "example": "母は料理が上手です。", "level": "N5"}, {"kanji": "子供", "kana": "こども", "romaji": "kodomo", "type": "名词", "meaning": "孩子", "example": "子供が公園で遊んでいます。", "level": "N5"}, {"kanji": "学校", "kana": "がっこう", "romaji": "gakkou", "type": "名词", "meaning": "学校", "example": "毎日学校へ行きます。", "level": "N5"}, {"kanji": "家", "kana": "いえ", "romaji": "ie", "type": "名词", "meaning": "家", "example": "家に帰ります。", "level": "N5"}, {"kanji": "駅", "kana": "えき", "romaji": "eki", "type": "名词", "meaning": "车站", "example": "駅まで歩きます。", "level": "N5"}, {"kanji": "病院", "kana": "びょういん", "romaji": "byouin", "type": "名词", "meaning": "医院", "example": "病院で診てもらいます。", "level": "N5"}, {"kanji": "銀行", "kana": "ぎんこう", "romaji": "ginkou", "type": "名词", "meaning": "银行", "example": "銀行でお金をおろします。", "level": "N5"}, {"kanji": "郵便局", "kana": "ゆうびんきょく", "romaji": "yuubinkyoku", "type": "名词", "meaning": "邮局", "example": "郵便局で手紙を出します。", "level": "N5"}, {"kanji": "図書館", "kana": "としょかん", "romaji": "toshokan", "type": "名词", "meaning": "图书馆", "example": "図書館で勉強します。", "level": "N5"}, {"kanji": "レストラン", "kana": "レストラン", "romaji": "resutoran", "type": "名词", "meaning": "餐厅", "example": "レストランで食事します。", "level": "N5"}, {"kanji": "店", "kana": "みせ", "romaji": "mise", "type": "名词", "meaning": "店", "example": "あの店は安いです。", "level": "N5"}, {"kanji": "公園", "kana": "こうえん", "romaji": "kouen", "type": "名词", "meaning": "公园", "example": "公園で散歩します。", "level": "N5"}, {"kanji": "空港", "kana": "くうこう", "romaji": "kuukou", "type": "名词", "meaning": "机场", "example": "空港まで迎えに行きます。", "level": "N5"}, {"kanji": "本", "kana": "ほん", "romaji": "hon", "type": "名词", "meaning": "书", "example": "本を読みます。", "level": "N5"}, {"kanji": "新聞", "kana": "しんぶん", "romaji": "shinbun", "type": "名词", "meaning": "报纸", "example": "毎朝新聞を読みます。", "level": "N5"}, {"kanji": "雑誌", "kana": "ざっし", "romaji": "zasshi", "type": "名词", "meaning": "杂志", "example": "雑誌を買います。", "level": "N5"}, {"kanji": "手紙", "kana": "てがみ", "romaji": "tegami", "type": "名词", "meaning": "信", "example": "友達に手紙を書きます。", "level": "N5"}, {"kanji": "電話", "kana": "でんわ", "romaji": "denwa", "type": "名词", "meaning": "电话", "example": "電話をかけます。", "level": "N5"}, {"kanji": "時計", "kana": "とけい", "romaji": "tokei", "type": "名词", "meaning": "钟表", "example": "時計を見ます。", "level": "N5"}, {"kanji": "かばん", "kana": "かばん", "romaji": "kaban", "type": "名词", "meaning": "包", "example": "かばんの中に財布があります。", "level": "N5"}, {"kanji": "傘", "kana": "かさ", "romaji": "kasa", "type": "名词", "meaning": "雨伞", "example": "傘を持っていきます。", "level": "N5"}, {"kanji": "財布", "kana": "さいふ", "romaji": "saifu", "type": "名词", "meaning": "钱包", "example": "財布をなくしました。", "level": "N5"}, {"kanji": "鍵", "kana": "かぎ", "romaji": "kagi", "type": "名词", "meaning": "钥匙", "example": "鍵をかけてください。", "level": "N5"}, {"kanji": "ご飯", "kana": "ごはん", "romaji": "gohan", "type": "名词", "meaning": "米饭", "example": "ご飯を食べます。", "level": "N5"}, {"kanji": "パン", "kana": "パン", "romaji": "pan", "type": "名词", "meaning": "面包", "example": "朝はパンを食べます。", "level": "N5"}, {"kanji": "水", "kana": "みず", "romaji": "mizu", "type": "名词", "meaning": "水", "example": "水を飲みます。", "level": "N5"}, {"kanji": "お茶", "kana": "おちゃ", "romaji": "ocha", "type": "名词", "meaning": "茶", "example": "お茶を一杯ください。", "level": "N5"}, {"kanji": "牛乳", "kana": "ぎゅうにゅう", "romaji": "gyuunyuu", "type": "名词", "meaning": "牛奶", "example": "毎朝牛乳を飲みます。", "level": "N5"}, {"kanji": "肉", "kana": "にく", "romaji": "niku", "type": "名词", "meaning": "肉", "example": "肉が好きです。", "level": "N5"}, {"kanji": "魚", "kana": "さかな", "romaji": "sakana", "type": "名词", "meaning": "鱼", "example": "魚を焼きます。", "level": "N5"}, {"kanji": "野菜", "kana": "やさい", "romaji": "yasai", "type": "名词", "meaning": "蔬菜", "example": "野菜をたくさん食べます。", "level": "N5"}, {"kanji": "果物", "kana": "くだもの", "romaji": "kudamono", "type": "名词", "meaning": "水果", "example": "果物が好きです。", "level": "N5"}, {"kanji": "卵", "kana": "たまご", "romaji": "tamago", "type": "名词", "meaning": "鸡蛋", "example": "卵を二個買います。", "level": "N5"}, {"kanji": "今日", "kana": "きょう", "romaji": "kyou", "type": "名词", "meaning": "今天", "example": "今日は暑いです。", "level": "N5"}, {"kanji": "明日", "kana": "あした", "romaji": "ashita", "type": "名词", "meaning": "明天", "example": "明日また来ます。", "level": "N5"}, {"kanji": "昨日", "kana": "きのう", "romaji": "kinou", "type": "名词", "meaning": "昨天", "example": "昨日は雨でした。", "level": "N5"}, {"kanji": "今年", "kana": "ことし", "romaji": "kotoshi", "type": "名词", "meaning": "今年", "example": "今年は忙しいです。", "level": "N5"}, {"kanji": "来年", "kana": "らいねん", "romaji": "rainen", "type": "名词", "meaning": "明年", "example": "来年日本へ行きます。", "level": "N5"}, {"kanji": "去年", "kana": "きょねん", "romaji": "kyonen", "type": "名词", "meaning": "去年", "example": "去年結婚しました。", "level": "N5"}, {"kanji": "朝", "kana": "あさ", "romaji": "asa", "type": "名词", "meaning": "早上", "example": "朝ごはんを食べます。", "level": "N5"}, {"kanji": "昼", "kana": "ひる", "romaji": "hiru", "type": "名词", "meaning": "中午", "example": "昼に友達と会います。", "level": "N5"}, {"kanji": "夜", "kana": "よる", "romaji": "yoru", "type": "名词", "meaning": "晚上", "example": "夜は静かです。", "level": "N5"}, {"kanji": "時間", "kana": "じかん", "romaji": "jikan", "type": "名词", "meaning": "时间", "example": "時間がありません。", "level": "N5"}, {"kanji": "山", "kana": "やま", "romaji": "yama", "type": "名词", "meaning": "山", "example": "山に登ります。", "level": "N5"}, {"kanji": "川", "kana": "かわ", "romaji": "kawa", "type": "名词", "meaning": "河", "example": "川で泳ぎます。", "level": "N5"}, {"kanji": "海", "kana": "うみ", "romaji": "umi", "type": "名词", "meaning": "海", "example": "夏は海へ行きます。", "level": "N5"}, {"kanji": "空", "kana": "そら", "romaji": "sora", "type": "名词", "meaning": "天空", "example": "空が青いです。", "level": "N5"}, {"kanji": "花", "kana": "はな", "romaji": "hana", "type": "名词", "meaning": "花", "example": "花が咲いています。", "level": "N5"}, {"kanji": "木", "kana": "き", "romaji": "ki", "type": "名词", "meaning": "树", "example": "木の下で休みます。", "level": "N5"}, {"kanji": "行く", "kana": "いく", "romaji": "iku", "type": "动词", "meaning": "去", "example": "学校へ行きます。", "level": "N5"}, {"kanji": "来る", "kana": "くる", "romaji": "kuru", "type": "动词", "meaning": "来", "example": "友達が来ます。", "level": "N5"}, {"kanji": "帰る", "kana": "かえる", "romaji": "kaeru", "type": "动词", "meaning": "回去", "example": "家に帰ります。", "level": "N5"}, {"kanji": "食べる", "kana": "たべる", "romaji": "taberu", "type": "动词", "meaning": "吃", "example": "ご飯を食べます。", "level": "N5"}, {"kanji": "飲む", "kana": "のむ", "romaji": "nomu", "type": "动词", "meaning": "喝", "example": "水を飲みます。", "level": "N5"}, {"kanji": "見る", "kana": "みる", "romaji": "miru", "type": "动词", "meaning": "看", "example": "テレビを見ます。", "level": "N5"}, {"kanji": "聞く", "kana": "きく", "romaji": "kiku", "type": "动词", "meaning": "听/问", "example": "音楽を聞きます。", "level": "N5"}, {"kanji": "話す", "kana": "はなす", "romaji": "hanasu", "type": "动词", "meaning": "说话", "example": "日本語で話します。", "level": "N5"}, {"kanji": "読む", "kana": "よむ", "romaji": "yomu", "type": "动词", "meaning": "读", "example": "本を読みます。", "level": "N5"}, {"kanji": "書く", "kana": "かく", "romaji": "kaku", "type": "动词", "meaning": "写", "example": "手紙を書きます。", "level": "N5"}, {"kanji": "買う", "kana": "かう", "romaji": "kau", "type": "动词", "meaning": "买", "example": "服を買います。", "level": "N5"}, {"kanji": "売る", "kana": "うる", "romaji": "uru", "type": "动词", "meaning": "卖", "example": "本を売ります。", "level": "N5"}, {"kanji": "起きる", "kana": "おきる", "romaji": "okiru", "type": "动词", "meaning": "起床", "example": "七時に起きます。", "level": "N5"}, {"kanji": "寝る", "kana": "ねる", "romaji": "neru", "type": "动词", "meaning": "睡觉", "example": "十一時に寝ます。", "level": "N5"}, {"kanji": "働く", "kana": "はたらく", "romaji": "hataraku", "type": "动词", "meaning": "工作", "example": "会社で働きます。", "level": "N5"}, {"kanji": "勉強する", "kana": "べんきょうする", "romaji": "benkyou suru", "type": "动词", "meaning": "学习", "example": "日本語を勉強します。", "level": "N5"}, {"kanji": "休む", "kana": "やすむ", "romaji": "yasumu", "type": "动词", "meaning": "休息", "example": "日曜日に休みます。", "level": "N5"}, {"kanji": "遊ぶ", "kana": "あそぶ", "romaji": "asobu", "type": "动词", "meaning": "玩", "example": "公園で遊びます。", "level": "N5"}, {"kanji": "待つ", "kana": "まつ", "romaji": "matsu", "type": "动词", "meaning": "等待", "example": "友達を待ちます。", "level": "N5"}, {"kanji": "会う", "kana": "あう", "romaji": "au", "type": "动词", "meaning": "见面", "example": "友達に会います。", "level": "N5"}, {"kanji": "乗る", "kana": "のる", "romaji": "noru", "type": "动词", "meaning": "乘坐", "example": "電車に乗ります。", "level": "N5"}, {"kanji": "降りる", "kana": "おりる", "romaji": "oriru", "type": "动词", "meaning": "下车", "example": "次の駅で降ります。", "level": "N5"}, {"kanji": "入る", "kana": "はいる", "romaji": "hairu", "type": "动词", "meaning": "进入", "example": "部屋に入ります。", "level": "N5"}, {"kanji": "出る", "kana": "でる", "romaji": "deru", "type": "动词", "meaning": "出去", "example": "家を出ます。", "level": "N5"}, {"kanji": "開ける", "kana": "あける", "romaji": "akeru", "type": "动词", "meaning": "打开", "example": "窓を開けます。", "level": "N5"}, {"kanji": "閉める", "kana": "しめる", "romaji": "shimeru", "type": "动词", "meaning": "关闭", "example": "ドアを閉めます。", "level": "N5"}, {"kanji": "使う", "kana": "つかう", "romaji": "tsukau", "type": "动词", "meaning": "使用", "example": "箸を使います。", "level": "N5"}, {"kanji": "作る", "kana": "つくる", "romaji": "tsukuru", "type": "动词", "meaning": "制作", "example": "料理を作ります。", "level": "N5"}, {"kanji": "洗う", "kana": "あらう", "romaji": "arau", "type": "动词", "meaning": "洗", "example": "手を洗います。", "level": "N5"}, {"kanji": "切る", "kana": "きる", "romaji": "kiru", "type": "动词", "meaning": "切", "example": "野菜を切ります。", "level": "N5"}, {"kanji": "着る", "kana": "きる", "romaji": "kiru", "type": "动词", "meaning": "穿（上衣）", "example": "コートを着ます。", "level": "N5"}, {"kanji": "脱ぐ", "kana": "ぬぐ", "romaji": "nugu", "type": "动词", "meaning": "脱", "example": "靴を脱ぎます。", "level": "N5"}, {"kanji": "貸す", "kana": "かす", "romaji": "kasu", "type": "动词", "meaning": "借出", "example": "本を貸します。", "level": "N5"}, {"kanji": "借りる", "kana": "かりる", "romaji": "kariru", "type": "动词", "meaning": "借入", "example": "傘を借ります。", "level": "N5"}, {"kanji": "知る", "kana": "しる", "romaji": "shiru", "type": "动词", "meaning": "知道", "example": "彼の名前を知っています。", "level": "N5"}, {"kanji": "分かる", "kana": "わかる", "romaji": "wakaru", "type": "动词", "meaning": "明白", "example": "日本語が分かります。", "level": "N5"}, {"kanji": "大きい", "kana": "おおきい", "romaji": "ookii", "type": "形容词", "meaning": "大的", "example": "大きい犬がいます。", "level": "N5"}, {"kanji": "小さい", "kana": "ちいさい", "romaji": "chiisai", "type": "形容词", "meaning": "小的", "example": "小さい猫です。", "level": "N5"}, {"kanji": "長い", "kana": "ながい", "romaji": "nagai", "type": "形容词", "meaning": "长的", "example": "長い橋があります。", "level": "N5"}, {"kanji": "短い", "kana": "みじかい", "romaji": "mijikai", "type": "形容词", "meaning": "短的", "example": "短い話です。", "level": "N5"}, {"kanji": "高い", "kana": "たかい", "romaji": "takai", "type": "形容词", "meaning": "高/贵", "example": "この山は高いです。", "level": "N5"}, {"kanji": "低い", "kana": "ひくい", "romaji": "hikui", "type": "形容词", "meaning": "低的", "example": "低い声で話します。", "level": "N5"}, {"kanji": "安い", "kana": "やすい", "romaji": "yasui", "type": "形容词", "meaning": "便宜的", "example": "この店は安いです。", "level": "N5"}, {"kanji": "新しい", "kana": "あたらしい", "romaji": "atarashii", "type": "形容词", "meaning": "新的", "example": "新しい車を買いました。", "level": "N5"}, {"kanji": "古い", "kana": "ふるい", "romaji": "furui", "type": "形容词", "meaning": "旧的", "example": "古い建物です。", "level": "N5"}, {"kanji": "暑い", "kana": "あつい", "romaji": "atsui", "type": "形容词", "meaning": "热的（天气）", "example": "今日は暑いです。", "level": "N5"}, {"kanji": "寒い", "kana": "さむい", "romaji": "samui", "type": "形容词", "meaning": "冷的", "example": "冬は寒いです。", "level": "N5"}, {"kanji": "熱い", "kana": "あつい", "romaji": "atsui", "type": "形容词", "meaning": "热的（物体）", "example": "熱いお茶です。", "level": "N5"}, {"kanji": "冷たい", "kana": "つめたい", "romaji": "tsumetai", "type": "形容词", "meaning": "凉的", "example": "冷たい水を飲みます。", "level": "N5"}, {"kanji": "良い", "kana": "いい", "romaji": "ii", "type": "形容词", "meaning": "好的", "example": "いい天気ですね。", "level": "N5"}, {"kanji": "悪い", "kana": "わるい", "romaji": "warui", "type": "形容词", "meaning": "坏的", "example": "天気が悪いです。", "level": "N5"}, {"kanji": "難しい", "kana": "むずかしい", "romaji": "muzukashii", "type": "形容词", "meaning": "难的", "example": "日本語は難しいです。", "level": "N5"}, {"kanji": "易しい", "kana": "やさしい", "romaji": "yasashii", "type": "形容词", "meaning": "容易的", "example": "この問題は易しいです。", "level": "N5"}, {"kanji": "忙しい", "kana": "いそがしい", "romaji": "isogashii", "type": "形容词", "meaning": "忙碌的", "example": "今日は忙しいです。", "level": "N5"}, {"kanji": "楽しい", "kana": "たのしい", "romaji": "tanoshii", "type": "形容词", "meaning": "快乐的", "example": "旅行は楽しいです。", "level": "N5"}, {"kanji": "嬉しい", "kana": "うれしい", "romaji": "ureshii", "type": "形容词", "meaning": "高兴的", "example": "合格して嬉しいです。", "level": "N5"}, {"kanji": "悲しい", "kana": "かなしい", "romaji": "kanashii", "type": "形容词", "meaning": "悲伤的", "example": "悲しい映画です。", "level": "N5"}, {"kanji": "怖い", "kana": "こわい", "romaji": "kowai", "type": "形容词", "meaning": "可怕的", "example": "怖い夢を見ました。", "level": "N5"}, {"kanji": "白い", "kana": "しろい", "romaji": "shiroi", "type": "形容词", "meaning": "白色的", "example": "白い雪が降ります。", "level": "N5"}, {"kanji": "黒い", "kana": "くろい", "romaji": "kuroi", "type": "形容词", "meaning": "黑色的", "example": "黒い猫がいます。", "level": "N5"}, {"kanji": "赤い", "kana": "あかい", "romaji": "akai", "type": "形容词", "meaning": "红色的", "example": "赤いバラです。", "level": "N5"}, {"kanji": "青い", "kana": "あおい", "romaji": "aoi", "type": "形容词", "meaning": "蓝/青色的", "example": "青い空です。", "level": "N5"}, {"kanji": "静か", "kana": "しずか", "romaji": "shizuka", "type": "形容词", "meaning": "安静的", "example": "図書館は静かです。", "level": "N5"}, {"kanji": "賑やか", "kana": "にぎやか", "romaji": "nigiyaka", "type": "形容词", "meaning": "热闹的", "example": "町は賑やかです。", "level": "N5"}, {"kanji": "親切", "kana": "しんせつ", "romaji": "shinsetsu", "type": "形容词", "meaning": "亲切的", "example": "親切な人です。", "level": "N5"}, {"kanji": "丁寧", "kana": "ていねい", "romaji": "teinei", "type": "形容词", "meaning": "礼貌的", "example": "丁寧に話します。", "level": "N5"}, {"kanji": "とても", "kana": "とても", "romaji": "totemo", "type": "副词", "meaning": "非常", "example": "とても嬉しいです。", "level": "N5"}, {"kanji": "少し", "kana": "すこし", "romaji": "sukoshi", "type": "副词", "meaning": "一点", "example": "少し待ってください。", "level": "N5"}, {"kanji": "もっと", "kana": "もっと", "romaji": "motto", "type": "副词", "meaning": "更加", "example": "もっとゆっくり話してください。", "level": "N5"}, {"kanji": "また", "kana": "また", "romaji": "mata", "type": "副词", "meaning": "再次", "example": "またお会いしましょう。", "level": "N5"}, {"kanji": "もう", "kana": "もう", "romaji": "mou", "type": "副词", "meaning": "已经", "example": "もう食べました。", "level": "N5"}, {"kanji": "まだ", "kana": "まだ", "romaji": "mada", "type": "副词", "meaning": "还", "example": "まだ終わっていません。", "level": "N5"}, {"kanji": "一緒に", "kana": "いっしょに", "romaji": "issho ni", "type": "副词", "meaning": "一起", "example": "一緒に行きましょう。", "level": "N5"}, {"kanji": "たくさん", "kana": "たくさん", "romaji": "takusan", "type": "副词", "meaning": "很多", "example": "たくさん食べました。", "level": "N5"}], "n4": [{"kanji": "意見", "kana": "いけん", "romaji": "iken", "type": "名词", "meaning": "意见", "example": "意見を言ってください。", "level": "N4"}, {"kanji": "意味", "kana": "いみ", "romaji": "imi", "type": "名词", "meaning": "意思", "example": "この言葉の意味は何ですか。", "level": "N4"}, {"kanji": "機会", "kana": "きかい", "romaji": "kikai", "type": "名词", "meaning": "机会", "example": "機会があれば行きたいです。", "level": "N4"}, {"kanji": "気持ち", "kana": "きもち", "romaji": "kimochi", "type": "名词", "meaning": "心情", "example": "気持ちが分かります。", "level": "N4"}, {"kanji": "経験", "kana": "けいけん", "romaji": "keiken", "type": "名词", "meaning": "经验", "example": "いい経験になりました。", "level": "N4"}, {"kanji": "原因", "kana": "げんいん", "romaji": "genin", "type": "名词", "meaning": "原因", "example": "事故の原因を調べます。", "level": "N4"}, {"kanji": "結果", "kana": "けっか", "romaji": "kekka", "type": "名词", "meaning": "结果", "example": "試験の結果が出ました。", "level": "N4"}, {"kanji": "計画", "kana": "けいかく", "romaji": "keikaku", "type": "名词", "meaning": "计划", "example": "旅行の計画を立てます。", "level": "N4"}, {"kanji": "関係", "kana": "かんけい", "romaji": "kankei", "type": "名词", "meaning": "关系", "example": "二人の関係は良いです。", "level": "N4"}, {"kanji": "習慣", "kana": "しゅうかん", "romaji": "shuukan", "type": "名词", "meaning": "习惯", "example": "早起きの習慣があります。", "level": "N4"}, {"kanji": "準備", "kana": "じゅんび", "romaji": "junbi", "type": "名词", "meaning": "准备", "example": "出発の準備をします。", "level": "N4"}, {"kanji": "生活", "kana": "せいかつ", "romaji": "seikatsu", "type": "名词", "meaning": "生活", "example": "日本での生活は楽しいです。", "level": "N4"}, {"kanji": "性格", "kana": "せいかく", "romaji": "seikaku", "type": "名词", "meaning": "性格", "example": "明るい性格の人です。", "level": "N4"}, {"kanji": "説明", "kana": "せつめい", "romaji": "setsumei", "type": "名词", "meaning": "说明", "example": "分かりやすい説明です。", "level": "N4"}, {"kanji": "世界", "kana": "せかい", "romaji": "sekai", "type": "名词", "meaning": "世界", "example": "世界中を旅行したいです。", "level": "N4"}, {"kanji": "社会", "kana": "しゃかい", "romaji": "shakai", "type": "名词", "meaning": "社会", "example": "社会に貢献します。", "level": "N4"}, {"kanji": "自然", "kana": "しぜん", "romaji": "shizen", "type": "名词", "meaning": "自然", "example": "自然の中で過ごします。", "level": "N4"}, {"kanji": "事故", "kana": "じこ", "romaji": "jiko", "type": "名词", "meaning": "事故", "example": "交通事故が起きました。", "level": "N4"}, {"kanji": "情報", "kana": "じょうほう", "romaji": "jouhou", "type": "名词", "meaning": "信息", "example": "最新の情報を集めます。", "level": "N4"}, {"kanji": "場合", "kana": "ばあい", "romaji": "baai", "type": "名词", "meaning": "情况", "example": "その場合はどうしますか。", "level": "N4"}, {"kanji": "場所", "kana": "ばしょ", "romaji": "basho", "type": "名词", "meaning": "地方", "example": "待ち合わせの場所を決めます。", "level": "N4"}, {"kanji": "文化", "kana": "ぶんか", "romaji": "bunka", "type": "名词", "meaning": "文化", "example": "日本の文化を学びます。", "level": "N4"}, {"kanji": "文章", "kana": "ぶんしょう", "romaji": "bunshou", "type": "名词", "meaning": "文章", "example": "分かりやすい文章を書きます。", "level": "N4"}, {"kanji": "方法", "kana": "ほうほう", "romaji": "houhou", "type": "名词", "meaning": "方法", "example": "いい方法を考えます。", "level": "N4"}, {"kanji": "目的", "kana": "もくてき", "romaji": "mokuteki", "type": "名词", "meaning": "目的", "example": "旅行の目的は何ですか。", "level": "N4"}, {"kanji": "問題", "kana": "もんだい", "romaji": "mondai", "type": "名词", "meaning": "问题", "example": "問題を解きます。", "level": "N4"}, {"kanji": "理由", "kana": "りゆう", "romaji": "riyuu", "type": "名词", "meaning": "理由", "example": "遅れた理由を話します。", "level": "N4"}, {"kanji": "料理", "kana": "りょうり", "romaji": "ryouri", "type": "名词", "meaning": "料理", "example": "料理が得意です。", "level": "N4"}, {"kanji": "旅行", "kana": "りょこう", "romaji": "ryokou", "type": "名词", "meaning": "旅行", "example": "海外旅行が好きです。", "level": "N4"}, {"kanji": "連絡", "kana": "れんらく", "romaji": "renraku", "type": "名词", "meaning": "联络", "example": "後で連絡します。", "level": "N4"}, {"kanji": "安全", "kana": "あんぜん", "romaji": "anzen", "type": "名词", "meaning": "安全", "example": "安全に気をつけます。", "level": "N4"}, {"kanji": "運動", "kana": "うんどう", "romaji": "undou", "type": "名词", "meaning": "运动", "example": "毎日運動します。", "level": "N4"}, {"kanji": "映画", "kana": "えいが", "romaji": "eiga", "type": "名词", "meaning": "电影", "example": "映画を見に行きます。", "level": "N4"}, {"kanji": "音楽", "kana": "おんがく", "romaji": "ongaku", "type": "名词", "meaning": "音乐", "example": "音楽を聴きます。", "level": "N4"}, {"kanji": "記念", "kana": "きねん", "romaji": "kinen", "type": "名词", "meaning": "纪念", "example": "記念写真を撮ります。", "level": "N4"}, {"kanji": "記事", "kana": "きじ", "romaji": "kiji", "type": "名词", "meaning": "文章/报道", "example": "新聞の記事を読みます。", "level": "N4"}, {"kanji": "技術", "kana": "ぎじゅつ", "romaji": "gijutsu", "type": "名词", "meaning": "技术", "example": "技術を身につけます。", "level": "N4"}, {"kanji": "空気", "kana": "くうき", "romaji": "kuuki", "type": "名词", "meaning": "空气", "example": "空気がきれいです。", "level": "N4"}, {"kanji": "健康", "kana": "けんこう", "romaji": "kenkou", "type": "名词", "meaning": "健康", "example": "健康のために運動します。", "level": "N4"}, {"kanji": "研究", "kana": "けんきゅう", "romaji": "kenkyuu", "type": "名词", "meaning": "研究", "example": "新しい研究を始めます。", "level": "N4"}, {"kanji": "交通", "kana": "こうつう", "romaji": "koutsu", "type": "名词", "meaning": "交通", "example": "交通が便利です。", "level": "N4"}, {"kanji": "国際", "kana": "こくさい", "romaji": "kokusai", "type": "名词", "meaning": "国际", "example": "国際交流をします。", "level": "N4"}, {"kanji": "最近", "kana": "さいきん", "romaji": "saikin", "type": "名词", "meaning": "最近", "example": "最近忙しいです。", "level": "N4"}, {"kanji": "産業", "kana": "さんぎょう", "romaji": "sangyou", "type": "名词", "meaning": "产业", "example": "観光産業が発展しています。", "level": "N4"}, {"kanji": "事情", "kana": "じじょう", "romaji": "jijou", "type": "名词", "meaning": "情况", "example": "事情を説明します。", "level": "N4"}, {"kanji": "時代", "kana": "じだい", "romaji": "jidai", "type": "名词", "meaning": "时代", "example": "時代が変わりました。", "level": "N4"}, {"kanji": "実は", "kana": "じつは", "romaji": "jitsu wa", "type": "副词", "meaning": "其实", "example": "実は知っていました。", "level": "N4"}, {"kanji": "趣味", "kana": "しゅみ", "romaji": "shumi", "type": "名词", "meaning": "兴趣", "example": "趣味は読書です。", "level": "N4"}, {"kanji": "将来", "kana": "しょうらい", "romaji": "shourai", "type": "名词", "meaning": "将来", "example": "将来の夢は何ですか。", "level": "N4"}, {"kanji": "食事", "kana": "しょくじ", "romaji": "shokuji", "type": "名词", "meaning": "饮食", "example": "一緒に食事しましょう。", "level": "N4"}, {"kanji": "集める", "kana": "あつめる", "romaji": "atsumeru", "type": "动词", "meaning": "收集", "example": "切手を集めます。", "level": "N4"}, {"kanji": "表す", "kana": "あらわす", "romaji": "arawasu", "type": "动词", "meaning": "表达", "example": "気持ちを言葉で表します。", "level": "N4"}, {"kanji": "生きる", "kana": "いきる", "romaji": "ikiru", "type": "动词", "meaning": "生活/活着", "example": "自分らしく生きます。", "level": "N4"}, {"kanji": "急ぐ", "kana": "いそぐ", "romaji": "isogu", "type": "动词", "meaning": "赶紧", "example": "急いで行きます。", "level": "N4"}, {"kanji": "選ぶ", "kana": "えらぶ", "romaji": "erabu", "type": "动词", "meaning": "选择", "example": "好きな色を選びます。", "level": "N4"}, {"kanji": "起こる", "kana": "おこる", "romaji": "okoru", "type": "动词", "meaning": "发生", "example": "何が起こりましたか。", "level": "N4"}, {"kanji": "思い出す", "kana": "おもいだす", "romaji": "omoidasu", "type": "动词", "meaning": "想起", "example": "昔のことを思い出します。", "level": "N4"}, {"kanji": "変わる", "kana": "かわる", "romaji": "kawaru", "type": "动词", "meaning": "变化", "example": "天気が変わりました。", "level": "N4"}, {"kanji": "考える", "kana": "かんがえる", "romaji": "kangaeru", "type": "动词", "meaning": "思考", "example": "よく考えてから決めます。", "level": "N4"}, {"kanji": "感じる", "kana": "かんじる", "romaji": "kanjiru", "type": "动词", "meaning": "感觉", "example": "暖かさを感じます。", "level": "N4"}, {"kanji": "気づく", "kana": "きづく", "romaji": "kiduku", "type": "动词", "meaning": "注意到", "example": "間違いに気づきました。", "level": "N4"}, {"kanji": "決める", "kana": "きめる", "romaji": "kimeru", "type": "动词", "meaning": "决定", "example": "場所を決めます。", "level": "N4"}, {"kanji": "比べる", "kana": "くらべる", "romaji": "kuraberu", "type": "动词", "meaning": "比较", "example": "値段を比べます。", "level": "N4"}, {"kanji": "繰り返す", "kana": "くりかえす", "romaji": "kurikaesu", "type": "动词", "meaning": "反复", "example": "練習を繰り返します。", "level": "N4"}, {"kanji": "壊れる", "kana": "こわれる", "romaji": "kowareru", "type": "动词", "meaning": "损坏", "example": "机が壊れました。", "level": "N4"}, {"kanji": "探す", "kana": "さがす", "romaji": "sagasu", "type": "动词", "meaning": "寻找", "example": "財布を探しています。", "level": "N4"}, {"kanji": "触る", "kana": "さわる", "romaji": "sawaru", "type": "动词", "meaning": "触摸", "example": "展示品に触らないでください。", "level": "N4"}, {"kanji": "調べる", "kana": "しらべる", "romaji": "shiraberu", "type": "动词", "meaning": "调查", "example": "単語の意味を調べます。", "level": "N4"}, {"kanji": "信じる", "kana": "しんじる", "romaji": "shinjiru", "type": "动词", "meaning": "相信", "example": "彼の言葉を信じます。", "level": "N4"}, {"kanji": "続ける", "kana": "つづける", "romaji": "tsudukeru", "type": "动词", "meaning": "继续", "example": "練習を続けます。", "level": "N4"}, {"kanji": "伝える", "kana": "つたえる", "romaji": "tsutaeru", "type": "动词", "meaning": "传达", "example": "気持ちを伝えます。", "level": "N4"}, {"kanji": "手伝う", "kana": "てつだう", "romaji": "tetsudau", "type": "动词", "meaning": "帮忙", "example": "引越しを手伝います。", "level": "N4"}, {"kanji": "届く", "kana": "とどく", "romaji": "todoku", "type": "动词", "meaning": "到达", "example": "荷物が届きました。", "level": "N4"}, {"kanji": "泊まる", "kana": "とまる", "romaji": "tomaru", "type": "动词", "meaning": "住宿", "example": "ホテルに泊まります。", "level": "N4"}, {"kanji": "直す", "kana": "なおす", "romaji": "naosu", "type": "动词", "meaning": "修理", "example": "時計を直します。", "level": "N4"}, {"kanji": "慣れる", "kana": "なれる", "romaji": "nareru", "type": "动词", "meaning": "习惯", "example": "新しい生活に慣れました。", "level": "N4"}, {"kanji": "願う", "kana": "ねがう", "romaji": "negau", "type": "动词", "meaning": "祈愿", "example": "合格を願います。", "level": "N4"}, {"kanji": "残る", "kana": "のこる", "romaji": "nokoru", "type": "动词", "meaning": "剩下", "example": "食べ物が残りました。", "level": "N4"}, {"kanji": "運ぶ", "kana": "はこぶ", "romaji": "hakobu", "type": "动词", "meaning": "搬运", "example": "荷物を運びます。", "level": "N4"}, {"kanji": "始まる", "kana": "はじまる", "romaji": "hajimaru", "type": "动词", "meaning": "开始", "example": "授業が始まります。", "level": "N4"}, {"kanji": "払う", "kana": "はらう", "romaji": "harau", "type": "动词", "meaning": "支付", "example": "お金を払います。", "level": "N4"}, {"kanji": "引っ越す", "kana": "ひっこす", "romaji": "hikkosu", "type": "动词", "meaning": "搬家", "example": "来月引っ越します。", "level": "N4"}, {"kanji": "拾う", "kana": "ひろう", "romaji": "hirou", "type": "动词", "meaning": "捡起", "example": "財布を拾いました。", "level": "N4"}, {"kanji": "増える", "kana": "ふえる", "romaji": "fueru", "type": "动词", "meaning": "增加", "example": "観光客が増えています。", "level": "N4"}, {"kanji": "踏む", "kana": "ふむ", "romaji": "fumu", "type": "动词", "meaning": "踩", "example": "足を踏んでしまいました。", "level": "N4"}, {"kanji": "変える", "kana": "かえる", "romaji": "kaeru", "type": "动词", "meaning": "改变", "example": "計画を変えます。", "level": "N4"}, {"kanji": "招待する", "kana": "しょうたいする", "romaji": "shoutai suru", "type": "动词", "meaning": "邀请", "example": "パーティーに招待します。", "level": "N4"}, {"kanji": "紹介する", "kana": "しょうかいする", "romaji": "shoukai suru", "type": "动词", "meaning": "介绍", "example": "友達を紹介します。", "level": "N4"}, {"kanji": "心配する", "kana": "しんぱいする", "romaji": "shinpai suru", "type": "动词", "meaning": "担心", "example": "体のことが心配です。", "level": "N4"}, {"kanji": "注意する", "kana": "ちゅういする", "romaji": "chuui suru", "type": "动词", "meaning": "注意", "example": "交通事故に注意します。", "level": "N4"}, {"kanji": "練習する", "kana": "れんしゅうする", "romaji": "renshuu suru", "type": "动词", "meaning": "练习", "example": "毎日ピアノを練習します。", "level": "N4"}, {"kanji": "明るい", "kana": "あかるい", "romaji": "akarui", "type": "形容词", "meaning": "明亮的", "example": "明るい部屋です。", "level": "N4"}, {"kanji": "暗い", "kana": "くらい", "romaji": "kurai", "type": "形容词", "meaning": "暗的", "example": "夜は暗いです。", "level": "N4"}, {"kanji": "温かい", "kana": "あたたかい", "romaji": "atatakai", "type": "形容词", "meaning": "温暖的", "example": "温かいスープです。", "level": "N4"}, {"kanji": "涼しい", "kana": "すずしい", "romaji": "suzushii", "type": "形容词", "meaning": "凉爽的", "example": "秋は涼しいです。", "level": "N4"}, {"kanji": "広い", "kana": "ひろい", "romaji": "hiroi", "type": "形容词", "meaning": "宽广的", "example": "広い部屋です。", "level": "N4"}, {"kanji": "狭い", "kana": "せまい", "romaji": "semai", "type": "形容词", "meaning": "狭窄的", "example": "狭い道です。", "level": "N4"}, {"kanji": "重い", "kana": "おもい", "romaji": "omoi", "type": "形容词", "meaning": "重的", "example": "重い荷物を持ちます。", "level": "N4"}, {"kanji": "軽い", "kana": "かるい", "romaji": "karui", "type": "形容词", "meaning": "轻的", "example": "軽い荷物です。", "level": "N4"}, {"kanji": "深い", "kana": "ふかい", "romaji": "fukai", "type": "形容词", "meaning": "深的", "example": "深い川があります。", "level": "N4"}, {"kanji": "浅い", "kana": "あさい", "romaji": "asai", "type": "形容词", "meaning": "浅的", "example": "浅い川で遊びます。", "level": "N4"}, {"kanji": "多い", "kana": "おおい", "romaji": "ooi", "type": "形容词", "meaning": "多的", "example": "人が多いです。", "level": "N4"}, {"kanji": "少ない", "kana": "すくない", "romaji": "sukunai", "type": "形容词", "meaning": "少的", "example": "時間が少ないです。", "level": "N4"}, {"kanji": "速い", "kana": "はやい", "romaji": "hayai", "type": "形容词", "meaning": "快的", "example": "速い車です。", "level": "N4"}, {"kanji": "遅い", "kana": "おそい", "romaji": "osoi", "type": "形容词", "meaning": "慢的", "example": "歩くのが遅いです。", "level": "N4"}, {"kanji": "強い", "kana": "つよい", "romaji": "tsuyoi", "type": "形容词", "meaning": "强的", "example": "強い風が吹きます。", "level": "N4"}, {"kanji": "弱い", "kana": "よわい", "romaji": "yowai", "type": "形容词", "meaning": "弱的", "example": "弱い雨が降ります。", "level": "N4"}, {"kanji": "痛い", "kana": "いたい", "romaji": "itai", "type": "形容词", "meaning": "痛的", "example": "頭が痛いです。", "level": "N4"}, {"kanji": "眠い", "kana": "ねむい", "romaji": "nemui", "type": "形容词", "meaning": "困的", "example": "眠くなりました。", "level": "N4"}, {"kanji": "恥ずかしい", "kana": "はずかしい", "romaji": "hazukashii", "type": "形容词", "meaning": "害羞的", "example": "恥ずかしくて話せません。", "level": "N4"}, {"kanji": "珍しい", "kana": "めずらしい", "romaji": "mezurashii", "type": "形容词", "meaning": "罕见的", "example": "珍しい花を見ました。", "level": "N4"}, {"kanji": "正しい", "kana": "ただしい", "romaji": "tadashii", "type": "形容词", "meaning": "正确的", "example": "正しい答えです。", "level": "N4"}, {"kanji": "厳しい", "kana": "きびしい", "romaji": "kibishii", "type": "形容词", "meaning": "严格的", "example": "厳しい先生です。", "level": "N4"}, {"kanji": "複雑", "kana": "ふくざつ", "romaji": "fukuzatsu", "type": "形容词", "meaning": "复杂的", "example": "複雑な問題です。", "level": "N4"}, {"kanji": "便利", "kana": "べんり", "romaji": "benri", "type": "形容词", "meaning": "方便的", "example": "便利な道具です。", "level": "N4"}, {"kanji": "不便", "kana": "ふべん", "romaji": "fuben", "type": "形容词", "meaning": "不便的", "example": "交通が不便です。", "level": "N4"}, {"kanji": "丈夫", "kana": "じょうぶ", "romaji": "joubu", "type": "形容词", "meaning": "结实的", "example": "丈夫な靴です。", "level": "N4"}, {"kanji": "真剣", "kana": "しんけん", "romaji": "shinken", "type": "形容词", "meaning": "认真的", "example": "真剣に考えます。", "level": "N4"}, {"kanji": "特別", "kana": "とくべつ", "romaji": "tokubetsu", "type": "形容词", "meaning": "特别的", "example": "特別な日です。", "level": "N4"}, {"kanji": "様々", "kana": "さまざま", "romaji": "samazama", "type": "形容词", "meaning": "各种各样", "example": "様々な意見があります。", "level": "N4"}, {"kanji": "大切", "kana": "たいせつ", "romaji": "taisetsu", "type": "形容词", "meaning": "重要的", "example": "大切な友達です。", "level": "N4"}, {"kanji": "だいたい", "kana": "だいたい", "romaji": "daitai", "type": "副词", "meaning": "大概", "example": "だいたい分かりました。", "level": "N4"}, {"kanji": "だんだん", "kana": "だんだん", "romaji": "dandan", "type": "副词", "meaning": "渐渐", "example": "だんだん上手になります。", "level": "N4"}, {"kanji": "なかなか", "kana": "なかなか", "romaji": "nakanaka", "type": "副词", "meaning": "相当/很难", "example": "なかなか難しいです。", "level": "N4"}, {"kanji": "はっきり", "kana": "はっきり", "romaji": "hakkiri", "type": "副词", "meaning": "清楚地", "example": "はっきり話してください。", "level": "N4"}, {"kanji": "ゆっくり", "kana": "ゆっくり", "romaji": "yukkuri", "type": "副词", "meaning": "慢慢地", "example": "ゆっくり休んでください。", "level": "N4"}, {"kanji": "急に", "kana": "きゅうに", "romaji": "kyuu ni", "type": "副词", "meaning": "突然", "example": "急に雨が降りました。", "level": "N4"}, {"kanji": "特に", "kana": "とくに", "romaji": "toku ni", "type": "副词", "meaning": "特别", "example": "特に問題はありません。", "level": "N4"}, {"kanji": "必ず", "kana": "かならず", "romaji": "kanarazu", "type": "副词", "meaning": "一定", "example": "必ず連絡します。", "level": "N4"}, {"kanji": "ほとんど", "kana": "ほとんど", "romaji": "hotondo", "type": "副词", "meaning": "几乎", "example": "ほとんど終わりました。", "level": "N4"}, {"kanji": "もちろん", "kana": "もちろん", "romaji": "mochiron", "type": "副词", "meaning": "当然", "example": "もちろん行きます。", "level": "N4"}]};
+  applyLevel(currentLevel);
+}
 
-        function flipCard() {
-            document.getElementById('card').classList.toggle('flipped');
-        }
+function applyLevel(level) {
+  currentLevel = level;
+  let base = [];
+  if (level === 'all') base = [...allVocab.n5, ...allVocab.n4];
+  else if (level === 'N5') base = [...allVocab.n5];
+  else if (level === 'N4') base = [...allVocab.n4];
+  // merge user words (avoid duplication)
+  const baseKeys = new Set(base.map(w => w.kanji));
+  const extra = userWords.filter(w => !baseKeys.has(w.kanji));
+  words = [...base.map(w => ({...w, source: w.level || level})), ...extra];
 
-        function nextCard(e) {
-            e.stopPropagation();
-            currentIndex = (currentIndex + 1) % wordList.length;
-            updateCard();
-        }
+  // update level button styles
+  ['All','N5','N4'].forEach(l => {
+    const btn = document.getElementById('btn' + l);
+    if (btn) btn.classList.toggle('active', (l.toLowerCase() === level || (l === 'All' && level === 'all')));
+  });
 
-        function prevCard(e) {
-            e.stopPropagation();
-            currentIndex = (currentIndex - 1 + wordList.length) % wordList.length;
-            updateCard();
-        }
+  if (words.length >= 100) {
+    const idx = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = idx.slice(0, PAGE_SIZE);
+    groupOffset = -1;
+  } else {
+    buildGroup(0);
+  }
+  current = 0; isFlipped = false;
+  updateCard();
+}
 
-        function speak(text) {
-            const uttr = new SpeechSynthesisUtterance(text);
-            uttr.lang = 'ja-JP';
-            window.speechSynthesis.speak(uttr);
-        }
+function setLevel(level) {
+  applyLevel(level);
+}
 
-        // 初始化
-        updateCard();
-    </script>
+// ── Group management ──
+function buildGroup(offset) {
+  groupOffset = offset;
+  const start = offset * PAGE_SIZE;
+  currentGroup = [];
+  for (let i = start; i < Math.min(start + PAGE_SIZE, words.length); i++) {
+    currentGroup.push(i);
+  }
+}
+
+function totalGroups() { return Math.ceil(words.length / PAGE_SIZE); }
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function shuffleGroup() {
+  if (words.length === 0) return;
+  // 100+ words: true random shuffle of entire deck
+  if (words.length >= 100) {
+    const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
+    groupOffset = -1; // mark as shuffled mode
+    current = 0; isFlipped = false;
+    document.getElementById('modeLabel').textContent = '随机模式 · 共 ' + words.length + ' 词';
+    updateCard(); hideNextGroup();
+    return;
+  }
+  const total = totalGroups();
+  if (total <= 1) { showToast('词库不足，请先添加更多单词'); return; }
+  let next = groupOffset;
+  while (next === groupOffset) next = Math.floor(Math.random() * total);
+  buildGroup(next);
+  current = 0; isFlipped = false;
+  updateCard(); hideNextGroup();
+}
+
+function nextGroup() {
+  if (words.length >= 100) {
+    // In large-deck mode, get a fresh random batch
+    const shuffledIndices = shuffleArray([...Array(words.length).keys()]);
+    currentGroup = shuffledIndices.slice(0, PAGE_SIZE);
+    groupOffset = -1;
+    current = 0; isFlipped = false;
+    updateCard(); hideNextGroup();
+    return;
+  }
+  const total = totalGroups();
+  const next = (groupOffset + 1) % total;
+  buildGroup(next);
+  current = 0; isFlipped = false;
+  updateCard(); hideNextGroup();
+}
+
+function hideNextGroup() {
+  document.getElementById('nextGroupWrap').classList.remove('visible');
+}
+
+// ── Card rendering ──
+function updateCard() {
+  const total = words.length;
+  if (total === 0) {
+    document.getElementById('scene').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">帳</div>
+        <div class="empty-text">词库为空，请添加单词</div>
+      </div>`;
+    document.getElementById('progressText').textContent = '— / —';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('groupText').textContent = '';
+    document.getElementById('saveBtn') && (document.getElementById('saveBtn').style.display = 'none');
+    buildDots();
+    return;
+  }
+
+  // Ensure scene has card structure
+  if (!document.getElementById('card')) restoreScene();
+
+  const wi = currentGroup[current];
+  const w = words[wi];
+
+  document.getElementById('kanjiDisplay').textContent = w.kanji;
+  document.getElementById('kanaDisplay').textContent = w.kana;
+  document.getElementById('romajiDisplay').textContent = w.romaji;
+  document.getElementById('wordType').textContent = w.type;
+  document.getElementById('meaningDisplay').textContent = w.meaning;
+  document.getElementById('exampleDisplay').textContent = w.example || '';
+
+  const inGroup = current + 1;
+  const groupSize = currentGroup.length;
+  document.getElementById('progressText').textContent =
+    String(inGroup).padStart(2,'0') + ' / ' + String(groupSize).padStart(2,'0');
+  document.getElementById('progressFill').style.width = (inGroup / groupSize * 100) + '%';
+
+  const tg = totalGroups();
+  document.getElementById('groupText').textContent =
+    tg > 1 ? `第 ${groupOffset+1} 批 / 共 ${tg} 批` : '';
+  document.getElementById('shuffleBtn').style.display = tg > 1 ? 'inline' : 'none';
+
+  updateModeLabel();
+  updateSaveBtn();
+  buildDots();
+
+  // Show "next group" banner when reaching last card of group
+  if (inGroup === groupSize && groupSize > 0) {
+    document.getElementById('nextGroupWrap').classList.add('visible');
+  } else {
+    hideNextGroup();
+  }
+}
+
+function restoreScene() {
+  document.getElementById('scene').innerHTML = `
+    <button class="save-btn" id="saveBtn" onclick="event.stopPropagation();toggleReview()" title="加入复习列表">♡</button>
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <span class="word-type" id="wordType"></span>
+        <span class="kanji" id="kanjiDisplay"></span>
+        <span class="hint">点击翻面 · タップ</span>
+      </div>
+      <div class="card-face card-back">
+        <span class="kana" id="kanaDisplay"></span>
+        <span class="romaji" id="romajiDisplay"></span>
+        <div class="divider"></div>
+        <span class="meaning" id="meaningDisplay"></span>
+        <span class="example" id="exampleDisplay"></span>
+      </div>
+    </div>`;
+}
+
+function updateSaveBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  const wi = currentGroup[current];
+  const w = words[wi];
+  if (!w) return;
+  const saved = reviewSet.has(w.kanji);
+  btn.textContent = saved ? '♥' : '♡';
+  btn.classList.toggle('saved', saved);
+  btn.title = saved ? '已加入复习列表（点击取消）' : '加入复习列表';
+}
+
+function updateModeLabel() {
+  if (words.length >= 100) {
+    document.getElementById('modeLabel').textContent = '随机模式 · 共 ' + words.length + ' 词';
+  } else {
+    document.getElementById('modeLabel').textContent =
+      totalGroups() > 1 ? '词库 · 共 ' + words.length + ' 词' : '全部词汇';
+  }
+}
+
+function buildDots() {
+  const c = document.getElementById('dots');
+  c.innerHTML = '';
+  currentGroup.forEach((wi, i) => {
+    const w = words[wi];
+    const d = document.createElement('div');
+    const isReview = reviewSet.has(w.kanji);
+    d.className = 'dot' + (isReview ? ' review-dot' : '') + (i === current ? ' active' : '');
+    d.title = w.kanji;
+    d.onclick = () => goTo(i);
+    c.appendChild(d);
+  });
+  updateReviewBadge();
+}
+
+function updateReviewBadge() {
+  const badge = document.getElementById('reviewBadge');
+  const count = reviewSet.size;
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
+  badge.textContent = count;
+}
+
+// ── Navigation ──
+function flipCard() {
+  if (!document.getElementById('card')) return;
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+}
+
+function goTo(i) {
+  isFlipped = false;
+  const card = document.getElementById('card');
+  if (card) card.classList.remove('flipped');
+  current = ((i % currentGroup.length) + currentGroup.length) % currentGroup.length;
+  updateCard();
+}
+function nextCard() { goTo(current + 1); }
+function prevCard() { goTo(current - 1); }
+
+// ── Review (main card) ──
+function toggleReview() {
+  if (currentGroup.length === 0) return;
+  const wi = currentGroup[current];
+  const w = words[wi];
+  if (reviewSet.has(w.kanji)) {
+    reviewSet.delete(w.kanji);
+    showToast('已从复习列表移除');
+  } else {
+    reviewSet.add(w.kanji);
+    showToast('已加入复习列表 ♥');
+  }
+  updateSaveBtn();
+  buildDots();
+}
+
+// ── Review flashcard state ──
+let rList = [];   // array of word objects in review
+let rCurrent = 0;
+let rFlipped = false;
+
+function openReviewPanel() {
+  const empty = document.getElementById('reviewEmpty');
+  const wrap = document.getElementById('reviewCardWrap');
+  const subtitle = document.getElementById('reviewSubtitle');
+
+  rList = words.filter(w => reviewSet.has(w.kanji));
+  if (rList.length === 0) {
+    subtitle.textContent = '标记需要加强的单词';
+    empty.style.display = 'flex';
+    wrap.style.display = 'none';
+    return;
+  }
+  subtitle.textContent = '共 ' + rList.length + ' 个需要加强';
+  empty.style.display = 'none';
+  wrap.style.display = 'flex';
+  rCurrent = 0;
+  rFlipped = false;
+  rUpdateCard();
+}
+
+function rUpdateCard() {
+  if (rList.length === 0) {
+    document.getElementById('reviewSubtitle').textContent = '全部记住了 ✓';
+    document.getElementById('reviewCardWrap').style.display = 'none';
+    document.getElementById('reviewEmpty').style.display = 'flex';
+    document.getElementById('reviewEmpty').innerHTML = `
+      <div class="review-empty">
+        <div class="review-empty-icon">✓</div>
+        <div class="review-empty-text">全部记住了！</div>
+      </div>`;
+    return;
+  }
+  rCurrent = Math.min(rCurrent, rList.length - 1);
+  const w = rList[rCurrent];
+  document.getElementById('rKanjiDisplay').textContent = w.kanji;
+  document.getElementById('rKanaDisplay').textContent = w.kana;
+  document.getElementById('rRomajiDisplay').textContent = w.romaji;
+  document.getElementById('rWordType').textContent = w.type;
+  document.getElementById('rMeaningDisplay').textContent = w.meaning;
+  document.getElementById('rExampleDisplay').textContent = w.example || '';
+  document.getElementById('rProgressText').textContent =
+    String(rCurrent+1).padStart(2,'0') + ' / ' + String(rList.length).padStart(2,'0');
+  document.getElementById('rProgressFill').style.width = ((rCurrent+1)/rList.length*100) + '%';
+  document.getElementById('reviewSubtitle').textContent = '共 ' + rList.length + ' 个需要加强';
+  rBuildDots();
+}
+
+function rBuildDots() {
+  const c = document.getElementById('rDots');
+  c.innerHTML = '';
+  rList.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot review-dot' + (i === rCurrent ? ' active' : '');
+    d.onclick = () => { rCurrent = i; rFlipped = false; document.getElementById('rCard').classList.remove('flipped'); rUpdateCard(); };
+    c.appendChild(d);
+  });
+}
+
+function rFlipCard() {
+  rFlipped = !rFlipped;
+  document.getElementById('rCard').classList.toggle('flipped', rFlipped);
+}
+
+function rNext() {
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  rCurrent = (rCurrent + 1) % rList.length;
+  rUpdateCard();
+}
+
+function rPrev() {
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  rCurrent = (rCurrent - 1 + rList.length) % rList.length;
+  rUpdateCard();
+}
+
+function rRemoveCurrent() {
+  const w = rList[rCurrent];
+  reviewSet.delete(w.kanji);
+  rList.splice(rCurrent, 1);
+  rFlipped = false;
+  document.getElementById('rCard').classList.remove('flipped');
+  updateSaveBtn();
+  buildDots();
+  showToast('"' + w.kanji + '" 已从复习列表移除');
+  rUpdateCard();
+}
+
+// ── Panels ──
+function openPanel(name) {
+  document.getElementById(name + 'Overlay').classList.add('open');
+  if (name === 'manual') resetManualPanel();
+  if (name === 'review') openReviewPanel();
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+function closeOnBg(e, id) { if (e.target === document.getElementById(id)) closePanel(id); }
+
+// ── Option buttons (scoped per row) ──
+function selectOpt(btn) {
+  btn.closest('.option-row, .ai-options').querySelectorAll('.opt-btn').forEach(b => {
+    if (b.closest('.option-row') === btn.closest('.option-row')) b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+}
+
+
+// ── Manual Lookup ──
+function resetManualPanel() {
+  document.getElementById('mKanji').value = '';
+  document.getElementById('lookupHint').textContent = '';
+  document.getElementById('lookupResult').style.display = 'none';
+  document.getElementById('editFields').style.display = 'none';
+  lookedUpWord = null;
+}
+
+async function lookupWord() {
+  const kanji = document.getElementById('mKanji').value.trim();
+  if (!kanji) { showToast('请输入一个日语单词'); return; }
+  if (words.find(w => w.kanji === kanji)) { showToast(`"${kanji}" 已在词库中`); return; }
+
+  const btn = document.getElementById('lookupBtn');
+  const hint = document.getElementById('lookupHint');
+  btn.disabled = true; btn.textContent = '查询中…';
+  hint.textContent = 'AI 正在查询，请稍候…';
+  document.getElementById('lookupResult').style.display = 'none';
+
+  try {
+    const res = await fetch('https://vercel-proxy-five-green.vercel.app/api/proxy', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:500,
+        system:`你是日语词典助手。用户输入一个日语单词，严格返回 JSON 对象，无其他文字或代码块。
+字段：kanji（原词）、kana（平假名）、romaji、type（词性）、meaning（简洁中文释义，不超过10字）、example（含该词的短例句）。`,
+        messages:[{ role:'user', content:`查询：${kanji}` }]
+      })
+    });
+    const data = await res.json();
+    const clean = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    lookedUpWord = JSON.parse(clean);
+
+    document.getElementById('rKanji').textContent = lookedUpWord.kanji;
+    document.getElementById('rKana').textContent = lookedUpWord.kana;
+    document.getElementById('rType').textContent = lookedUpWord.type;
+    document.getElementById('rRomaji').textContent = lookedUpWord.romaji;
+    document.getElementById('rMeaning').textContent = lookedUpWord.meaning;
+    document.getElementById('rExample').textContent = lookedUpWord.example || '';
+    document.getElementById('mKana').value = lookedUpWord.kana;
+    document.getElementById('mRomaji').value = lookedUpWord.romaji;
+    document.getElementById('mType').value = lookedUpWord.type;
+    document.getElementById('mMeaning').value = lookedUpWord.meaning;
+    document.getElementById('mExample').value = lookedUpWord.example || '';
+
+    document.getElementById('lookupResult').style.display = 'flex';
+    hint.textContent = '';
+  } catch(e) {
+    hint.textContent = '查询失败，请检查网络或重试';
+  } finally {
+    btn.disabled = false; btn.textContent = '重新查询';
+  }
+}
+
+function toggleEdit() {
+  const f = document.getElementById('editFields');
+  f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+}
+
+function syncEditToCard() {
+  if (!lookedUpWord) return;
+  lookedUpWord.kana = document.getElementById('mKana').value.trim() || lookedUpWord.kana;
+  lookedUpWord.romaji = document.getElementById('mRomaji').value.trim() || lookedUpWord.romaji;
+  lookedUpWord.type = document.getElementById('mType').value.trim() || lookedUpWord.type;
+  lookedUpWord.meaning = document.getElementById('mMeaning').value.trim() || lookedUpWord.meaning;
+  lookedUpWord.example = document.getElementById('mExample').value.trim();
+  document.getElementById('rKana').textContent = lookedUpWord.kana;
+  document.getElementById('rRomaji').textContent = lookedUpWord.romaji;
+  document.getElementById('rType').textContent = lookedUpWord.type;
+  document.getElementById('rMeaning').textContent = lookedUpWord.meaning;
+  document.getElementById('rExample').textContent = lookedUpWord.example;
+  document.getElementById('editFields').style.display = 'none';
+  showToast('修改已应用');
+}
+
+function addManualWord() {
+  if (!lookedUpWord) { showToast('请先查询单词'); return; }
+  if (words.find(w => w.kanji === lookedUpWord.kanji)) { showToast(`"${lookedUpWord.kanji}" 已在词库中`); return; }
+  const label = lookedUpWord.kanji;
+  const newWord = {...lookedUpWord, source:'user'};
+  userWords.push(newWord);
+  words.push(newWord);
+  buildGroup(totalGroups() - 1);
+  current = currentGroup.indexOf(words.length - 1);
+  if (current < 0) current = 0;
+  isFlipped = false;
+  updateCard();
+  closePanel('manualOverlay');
+  resetManualPanel();
+  showToast('"' + label + '" 已添加');
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.overlay.open')) return;
+  if (e.key === 'ArrowRight') nextCard();
+  else if (e.key === 'ArrowLeft') prevCard();
+  else if (e.key === ' ') { e.preventDefault(); flipCard(); }
+  else if (e.key === 's' || e.key === 'S') toggleReview();
+});
+
+// ── Init ──
+loadVocab();
+</script>
 </body>
 </html>
